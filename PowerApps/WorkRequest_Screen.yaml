@@ -108,7 +108,7 @@ Screens:
         // =============================
         Set(varShowRequestPopup, false);
         Set(varRequestMode, "View");
-        Set(varSelectedRequest, Defaults(das));
+        Set(varSelectedRequest, Defaults(Analysis_Request_DB));
 
         // =============================
         // [7] 필터 기본값 초기화
@@ -141,7 +141,7 @@ Screens:
         // - 댓글 리스트
         // - 사용자 정보 리스트
         // =============================
-        Refresh(das);
+        Refresh(Analysis_Request_DB);
         Refresh(WorkRequestComments_DB);
         Refresh(UserInfo_DB);
         // 프로젝트 마스터도 새로고침
@@ -248,14 +248,14 @@ Screens:
                     Set(varRequestMode, "New");
 
                     // 신규 등록용 기본 레코드 지정
-                    Set(varSelectedRequest, Defaults(das));
+                    Set(varSelectedRequest, Defaults(Analysis_Request_DB));
 
                     // 신규 폼 모드로 전환
-                    NewForm(frmRequest);
+                    NewForm(frmAnalysisRequest);
 
                     // 팝업 열기
                     Set(varShowRequestPopup, true);
-                  Text: ="작업의뢰"
+                  Text: ="해석의뢰"
                   VerticalAlign: =VerticalAlign.Middle
                   Width: =95
                   X: =12
@@ -338,7 +338,7 @@ Screens:
                         Items: |-
                           =SortByColumns(
                               Filter(
-                                  das,
+                                  Analysis_Request_DB,
                                   SubmittedAt >= varDateFrom,
                                   SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
                                   Stage = "Completed",
@@ -689,7 +689,7 @@ Screens:
                               // 작업자일 때: 본인이 맡은 작업만 표시
                               SortByColumns(
                                   Filter(
-                                      das,
+                                      Analysis_Request_DB,
                                       SubmittedAt >= varDateFrom,
                                       SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
                                       Stage = "InProgress",
@@ -704,7 +704,7 @@ Screens:
                               // 팀장·일반 사용자: 본인이 등록한 작업만 표시
                               SortByColumns(
                                   Filter(
-                                      das,
+                                      Analysis_Request_DB,
                                       SubmittedAt >= varDateFrom,
                                       SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
                                       Stage = "InProgress",
@@ -944,7 +944,7 @@ Screens:
                               // 작업자일 때: 본인이 맡은 작업만 필터
                               SortByColumns(
                                   Filter(
-                                      das,
+                                      Analysis_Request_DB,
                                       SubmittedAt >= varDateFrom,
                                       SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
                                       Stage = "Start",
@@ -963,7 +963,7 @@ Screens:
                                   // 팀장일 때: 자신의 요청이거나 팀원 요청 중 승인 대기 건
                                   SortByColumns(
                                       Filter(
-                                          das,
+                                          Analysis_Request_DB,
                                           SubmittedAt >= varDateFrom,
                                           SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
                                           Stage = "Start",
@@ -983,7 +983,7 @@ Screens:
                                   // 그 외의 경우: 본인이 등록한 요청만
                                   SortByColumns(
                                       Filter(
-                                          das,
+                                          Analysis_Request_DB,
                                           SubmittedAt >= varDateFrom,
                                           SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
                                           Stage = "Start",
@@ -1227,9 +1227,9 @@ Screens:
                   FontSize: =14
                   FontWeight: =FontWeight.Semibold
                   Height: =35
-                  Text: ="연구소 시작실 작업의뢰"
+                  Text: ="연구소 해석 의뢰"
                   TextRole: ='Label.TextRole'.Heading1
-                  Width: =205
+                  Width: =153
             - name_label_6:
                 Control: FluentV8/Label@1.8.6
                 Properties:
@@ -1254,7 +1254,7 @@ Screens:
             OnSelect: |-
               =Set(varShowRequestPopup, false);
               Set(varRequestMode, "View");
-              Set(varSelectedRequest, Defaults(das));
+              Set(varSelectedRequest, Defaults(Analysis_Request_DB));
               Set(varSelectedImageAttachment, Blank());
             PressedFill: =RGBA(0, 0, 0, 0)
             Visible: =varShowRequestPopup
@@ -1672,7 +1672,7 @@ Screens:
                             Layout: Vertical
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
-                              DataSource: =das
+                              DataSource: =Analysis_Request_DB
                               Height: =63
                               Item: =varSelectedRequest
                               NumberOfColumns: =1
@@ -1687,7 +1687,7 @@ Screens:
                                     BorderColor: =RGBA(243, 242, 241, 1)
                                     DataField: ="{Attachments}"
                                     Default: =ThisItem.'첨부 파일'
-                                    DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,'첨부 파일')
+                                    DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'첨부 파일')
                                     Height: =62
                                     Required: =false
                                     Update: =DataCardValue3.Attachments
@@ -1889,7 +1889,7 @@ Screens:
                                     ),
 
                                     Patch(
-                                        das,
+                                        Analysis_Request_DB,
                                         varSelectedRequest,
                                         {
                                             Stage: "Completed",
@@ -1948,9 +1948,9 @@ Screens:
                                         )
                                     );
 
-                                    Refresh(das);
+                                    Refresh(Analysis_Request_DB);
                                     Refresh(WorkRequestComments_DB);
-                                    Set(varSelectedRequest, LookUp(das, ID = varSelectedRequest.ID));
+                                    Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
 
                                     Set(varToastMessage, "팀장 반려가 완료되었습니다.");
                                     Set(varShowToast, true)
@@ -1980,7 +1980,7 @@ Screens:
                                 // =============================
 
                                 Patch(
-                                    das,
+                                    Analysis_Request_DB,
                                     varSelectedRequest,
                                     {
                                         ApprovalState: "PendingWorker",
@@ -2053,9 +2053,9 @@ Screens:
                                     )
                                 );
 
-                                Refresh(das);
+                                Refresh(Analysis_Request_DB);
                                 Refresh(WorkRequestComments_DB);
-                                Set(varSelectedRequest, LookUp(das, ID = varSelectedRequest.ID));
+                                Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
 
                                 Set(varToastMessage, "팀장 승인이 완료되었습니다.");
                                 Set(varShowToast, true);
@@ -2163,7 +2163,7 @@ Screens:
                                     IsBlank(Trim(txtWorkerRejectReason.Text)),
                                     Notify("반려 사유를 입력해 주세요.", NotificationType.Warning),
                                     Patch(
-                                        das,
+                                        Analysis_Request_DB,
                                         varSelectedRequest,
                                         {
                                             Stage: "Completed",
@@ -2248,9 +2248,9 @@ Screens:
                                         )
                                     );
 
-                                    Refresh(das);
+                                    Refresh(Analysis_Request_DB);
                                     Refresh(WorkRequestComments_DB);
-                                    Set(varSelectedRequest, LookUp(das, ID = varSelectedRequest.ID));
+                                    Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
 
                                     Set(varToastMessage, "작업자 반려가 완료되었습니다.");
                                     Set(varShowToast, true)
@@ -2283,7 +2283,7 @@ Screens:
                               Font: =Font.Verdana
                               OnSelect: |-
                                 =Patch(
-                                    das,
+                                    Analysis_Request_DB,
                                     varSelectedRequest,
                                     {
                                         Stage: "Completed",
@@ -2374,9 +2374,9 @@ Screens:
                                 );
 
 
-                                Refresh(das);
+                                Refresh(Analysis_Request_DB);
                                 Refresh(WorkRequestComments_DB);
-                                Set(varSelectedRequest, LookUp(das, ID = varSelectedRequest.ID));
+                                Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
 
                                 Set(varToastMessage, "작업 완료 처리되었습니다.");
                                 Set(varShowToast, true);
@@ -2422,7 +2422,7 @@ Screens:
                               FontSize: =14
                               OnSelect: |-
                                 =Patch(
-                                    das,
+                                    Analysis_Request_DB,
                                     varSelectedRequest,
                                     {
                                         Stage: "InProgress",
@@ -2501,9 +2501,9 @@ Screens:
                                     )
                                 );
 
-                                Refresh(das);
+                                Refresh(Analysis_Request_DB);
                                 Refresh(WorkRequestComments_DB);
-                                Set(varSelectedRequest, LookUp(das, ID = varSelectedRequest.ID));
+                                Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
 
                                 Set(varToastMessage, "작업자가 작업을 수락했습니다.");
                                 Set(varShowToast, true);
@@ -2525,12 +2525,12 @@ Screens:
                   Width: =1019
                   Y: =62
                 Children:
-                  - frmRequest:
+                  - frmAnalysisRequest:
                       Control: Form@2.4.4
                       Layout: Vertical
                       Properties:
                         BorderColor: =RGBA(243, 242, 241, 1)
-                        DataSource: =das
+                        DataSource: =Analysis_Request_DB
                         Height: =597
                         Item: =varSelectedRequest
                         NumberOfColumns: =2
@@ -2559,7 +2559,7 @@ Screens:
 
                               // 3. 메인 요청 DB에 시스템 정보 보강 저장
                               Patch(
-                                  das,
+                                  Analysis_Request_DB,
                                   Self.LastSubmit,
                                   {
                                       RequestNo: varNewRequestNo,
@@ -2600,7 +2600,7 @@ Screens:
                               // 4. 저장된 최신 레코드 다시 조회
                               Set(
                                   varNewSavedRequest,
-                                  LookUp(das, ID = Self.LastSubmit.ID)
+                                  LookUp(Analysis_Request_DB, ID = Self.LastSubmit.ID)
                               );
 
                               // 5. 댓글 로그 1건 자동 생성
@@ -2659,13 +2659,13 @@ Screens:
                           // =============================
                           // 저장 후 공통 처리
                           // =============================
-                          Refresh(das);
+                          Refresh(Analysis_Request_DB);
                           Refresh(WorkRequestComments_DB);
 
-                          ResetForm(frmRequest);
+                          ResetForm(frmAnalysisRequest);
                           Set(varShowRequestPopup, false);
                           Set(varRequestMode, "View");
-                          Set(varSelectedRequest, Defaults(das));
+                          Set(varSelectedRequest, Defaults(Analysis_Request_DB));
 
                           Set(varToastMessage, "작업의뢰가 등록되었습니다.");
                           Set(varShowToast, true);
@@ -2680,8 +2680,8 @@ Screens:
                               BorderColor: =RGBA(243, 242, 241, 1)
                               DataField: ="Title"
                               Default: =ThisItem.제목
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,제목)
-                              MaxLength: =DataSourceInfo([@das], DataSourceInfo.MaxLength, 제목)
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,제목)
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 제목)
                               Required: =false
                               Update: =DataCardValue1.Value
                               Width: =750
@@ -2693,7 +2693,7 @@ Screens:
                                   MetadataKey: FieldName
                                   Properties:
                                     Height: =22
-                                    Text: ="작업명"
+                                    Text: ="해석명"
                                     Weight: ='TextCanvas.Weight'.Semibold
                                     Width: =Parent.Width - 48
                                     Wrap: =false
@@ -2744,7 +2744,7 @@ Screens:
                                     AccessibleLabel: =Parent.DisplayName
                                     DisplayMode: =Parent.DisplayMode
                                     Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
-                                    Placeholder: ="작업명을 입력하세요."
+                                    Placeholder: ="해석명을 입력하세요."
                                     Required: =Parent.Required
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
                                     Value: =Parent.Default
@@ -2759,125 +2759,33 @@ Screens:
                                     Text: ="*"
                                     Width: =30
                                     Y: =10
-                        - ProjectName_DataCard1:
+                        - DepartmentName_DataCard1:
                             Control: TypedDataCard@1.0.7
                             Variant: TextualEdit
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="ProjectName"
-                              Default: =ThisItem.ProjectName
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,ProjectName)
-                              MaxLength: =DataSourceInfo([@das], DataSourceInfo.MaxLength, ProjectName)
+                              DataField: ="DepartmentName"
+                              Default: =ThisItem.DepartmentName
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'DepartmentName')
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'DepartmentName')
                               Required: =true
-                              Update: |-
-                                =If(
-                                    IsEmpty(cmbProjectName.SelectedItems),
-                                    Blank(),
-                                    First(cmbProjectName.SelectedItems).프로젝트명
-                                )
-                              Width: =360
-                              X: =0
-                              Y: =1
-                            Children:
-                              - DataCardKey7:
-                                  Control: Text@0.0.51
-                                  MetadataKey: FieldName
-                                  Properties:
-                                    Height: =30
-                                    Text: ="프로젝트명"
-                                    Weight: ='TextCanvas.Weight'.Semibold
-                                    Width: =243
-                                    Wrap: =false
-                                    X: =24
-                                    Y: =10
-                              - ErrorMessage7:
-                                  Control: Text@0.0.51
-                                  MetadataKey: ErrorMessage
-                                  Properties:
-                                    Height: =30
-                                    Text: =Parent.Error
-                                    Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
-                                    Width: =Parent.Width - 48
-                                    X: =24
-                                    Y: =
-                              - StarVisible7:
-                                  Control: Text@0.0.51
-                                  MetadataKey: FieldRequired
-                                  Properties:
-                                    Align: ='TextCanvas.Align'.Center
-                                    Height: =30
-                                    Text: ="*"
-                                    Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
-                                    Width: =30
-                                    Y: =DataCardKey7.Y
-                              - cmbProjectName:
-                                  Control: ModernCombobox@1.0.0
-                                  Properties:
-                                    DefaultSelectedItems: =[]
-                                    InputTextPlaceholder: ="프로젝트명을 검색하거나 선택하세요"
-                                    ItemDisplayText: =ThisItem.프로젝트명
-                                    Items: |-
-                                      =With(
-                                          {
-                                              _base: Filter(
-                                                  Project_DB,
-                                                  (업무_계정 = "제품개발" || 업무_계정 = "기술개발") &&
-                                                  프로젝트명 <> "추가분"
-                                              )
-                                          },
-                                          SortByColumns(
-                                              AddColumns(
-                                                  Filter(
-                                                      _base,
-                                                      프로젝트명 <> "기타" ||
-                                                      ID = First(
-                                                          SortByColumns(
-                                                              Filter(_base, 프로젝트명 = "기타"),
-                                                              "ID",
-                                                              SortOrder.Ascending
-                                                          )
-                                                      ).ID
-                                                  ),
-                                                  SortOrderEtc,
-                                                  If(프로젝트명 = "기타", 1, 0)
-                                              ),
-                                              "SortOrderEtc",
-                                              SortOrder.Ascending,
-                                              "OData__xd504__xb85c__xc81d__xd2b8__xba",
-                                              SortOrder.Ascending
-                                          )
-                                      )
-                                    SelectMultiple: =false
-                                    Width: =243
-                                    X: =24
-                                    Y: =40
-                        - RelatedModel_DataCard2:
-                            Control: TypedDataCard@1.0.7
-                            Variant: TextualEdit
-                            Properties:
-                              BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="RelatedModel0"
-                              Default: =ThisItem.RelatedModel
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,'RelatedModel0')
-                              MaxLength: =DataSourceInfo([@das], DataSourceInfo.MaxLength, 'RelatedModel0')
-                              Required: =false
-                              Update: =Trim(txtRelatedModel.Value)
+                              Update: =DataCardValue2.Value
                               Width: =375
                               X: =1
-                              Y: =1
+                              Y: =0
                             Children:
-                              - DataCardKey6:
+                              - DataCardKey2:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldName
                                   Properties:
                                     Height: =22
-                                    Text: ="관련기종(관리번호)"
+                                    Text: =Parent.DisplayName
                                     Weight: ='TextCanvas.Weight'.Semibold
                                     Width: =Parent.Width - 48
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - txtRelatedModel:
+                              - DataCardValue2:
                                   Control: TextInput@0.0.54
                                   MetadataKey: FieldValue
                                   Properties:
@@ -2887,69 +2795,7 @@ Screens:
                                     Required: =Parent.Required
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
                                     Value: =Parent.Default
-                                    Width: =310
-                                    X: =24
-                                    Y: =DataCardKey6.Y + DataCardKey6.Height + 4
-                              - ErrorMessage6:
-                                  Control: Text@0.0.51
-                                  MetadataKey: ErrorMessage
-                                  Properties:
-                                    Height: =30
-                                    Text: =Parent.Error
-                                    Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
-                                    X: =24
-                                    Y: =txtRelatedModel.Y + txtRelatedModel.Height
-                              - StarVisible6:
-                                  Control: Text@0.0.51
-                                  MetadataKey: FieldRequired
-                                  Properties:
-                                    Align: ='TextCanvas.Align'.Center
-                                    Height: =30
-                                    Text: ="*"
-                                    Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
-                                    Width: =30
-                                    Y: =DataCardKey6.Y
-                        - RequestDetail_DataCard1:
-                            Control: TypedDataCard@1.0.7
-                            Variant: TextualEdit
-                            Properties:
-                              BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="RequestDetail"
-                              Default: =ThisItem.RequestDetail
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,RequestDetail)
-                              Height: =164
-                              MaxLength: =DataSourceInfo([@das], DataSourceInfo.MaxLength, RequestDetail)
-                              Required: =true
-                              Update: =Trim(txtPartDescription.Value)
-                              Width: =750
-                              X: =0
-                              Y: =2
-                            Children:
-                              - DataCardKey2:
-                                  Control: Text@0.0.51
-                                  MetadataKey: FieldName
-                                  Properties:
-                                    Height: =22
-                                    Text: ="의뢰 내용"
-                                    Weight: ='TextCanvas.Weight'.Semibold
-                                    Width: =Parent.Width - 48
-                                    Wrap: =false
-                                    X: =24
-                                    Y: =10
-                              - txtPartDescription:
-                                  Control: TextInput@0.0.54
-                                  MetadataKey: FieldValue
-                                  Properties:
-                                    AccessibleLabel: =Parent.DisplayName
-                                    DisplayMode: =Parent.DisplayMode
-                                    Height: =124
-                                    Mode: ='TextInputCanvas.Mode'.Multiline
-                                    Placeholder: ="세부 작업 내용을 입력해주세요."
-                                    Required: =Parent.Required
-                                    ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
-                                    Value: =Parent.Default
-                                    Width: =670
                                     X: =24
                                     Y: =DataCardKey2.Y + DataCardKey2.Height + 4
                               - ErrorMessage2:
@@ -2961,7 +2807,7 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =txtPartDescription.Y + txtPartDescription.Height
+                                    Y: =DataCardValue2.Y + DataCardValue2.Height
                               - StarVisible2:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -2972,46 +2818,117 @@ Screens:
                                     Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =30
                                     Y: =DataCardKey2.Y
-                        - RequestQty_DataCard1:
+                        - RequesterName_DataCard1:
                             Control: TypedDataCard@1.0.7
                             Variant: TextualEdit
+                            IsLocked: true
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="RequestQty"
-                              Default: =ThisItem.RequestQty
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,'RequestQty')
-                              Height: =117
-                              MaxLength: =DataSourceInfo([@das], DataSourceInfo.MaxLength, 'RequestQty')
-                              Required: =false
-                              Update: =txtRequestQty.Value
+                              DataField: ="RequesterName"
+                              Default: =ThisItem.RequesterName
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'RequesterName')
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'RequesterName')
+                              Required: =true
+                              Update: =DataCardValue4.Value
                               Width: =375
                               X: =0
-                              Y: =3
+                              Y: =1
                             Children:
-                              - DataCardKey4:
+                              - DataCardKey3:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldName
                                   Properties:
                                     Height: =22
-                                    Text: ="수량"
+                                    Text: =Parent.DisplayName
                                     Weight: ='TextCanvas.Weight'.Semibold
                                     Width: =Parent.Width - 48
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - txtRequestQty:
+                              - DataCardValue4:
                                   Control: TextInput@0.0.54
                                   MetadataKey: FieldValue
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     DisplayMode: =Parent.DisplayMode
-                                    Height: =71
-                                    Mode: ='TextInputCanvas.Mode'.Multiline
-                                    Placeholder: ="수량을 입력하세요."
+                                    Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
                                     Required: =Parent.Required
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
                                     Value: =Parent.Default
-                                    Width: =343
+                                    Width: =Parent.Width - 48
+                                    X: =24
+                                    Y: =DataCardKey3.Y + DataCardKey3.Height + 4
+                              - ErrorMessage3:
+                                  Control: Text@0.0.51
+                                  MetadataKey: ErrorMessage
+                                  Properties:
+                                    Height: =30
+                                    Text: =Parent.Error
+                                    Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
+                                    Width: =Parent.Width - 48
+                                    X: =24
+                                    Y: =DataCardValue4.Y + DataCardValue4.Height
+                              - StarVisible3:
+                                  Control: Text@0.0.51
+                                  MetadataKey: FieldRequired
+                                  Properties:
+                                    Align: ='TextCanvas.Align'.Center
+                                    Height: =30
+                                    Text: ="*"
+                                    Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                                    Width: =30
+                                    Y: =DataCardKey3.Y
+                        - ProductName_DataCard1:
+                            Control: TypedDataCard@1.0.7
+                            Variant: TextualEdit
+                            Properties:
+                              BorderColor: =RGBA(243, 242, 241, 1)
+                              DataField: ="ProductName"
+                              Default: =ThisItem.ProductName
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'ProductName')
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'ProductName')
+                              Required: =true
+                              Update: =txtProductName.Value
+                              Width: =375
+                              X: =1
+                              Y: =1
+                            Children:
+                              - DataCardKey4:
+                                  Control: ModernText@1.0.0
+                                  MetadataKey: FieldName
+                                  Properties:
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =22
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                    Size: =14
+                                    Text: ="품명"&Parent.DisplayName
+                                    VerticalAlign: =VerticalAlign.Top
+                                    Width: =Parent.Width - 48
+                                    Wrap: =false
+                                    X: =24
+                                    Y: =10
+                              - txtProductName:
+                                  Control: ModernTextInput@1.0.0
+                                  MetadataKey: FieldValue
+                                  Properties:
+                                    AccessibleLabel: =Parent.DisplayName
+                                    Default: =Parent.Default
+                                    DisplayMode: =Parent.DisplayMode
+                                    FontWeight: =""
+                                    MaxLength: =-1
+                                    Placeholder: ="품명을 입력하세요"
+                                    Required: =Parent.Required
+                                    Size: =0
+                                    TriggerOutput: =TriggerOutput.FocusOut
+                                    ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
+                                    Width: =Parent.Width - 48
                                     X: =24
                                     Y: =DataCardKey4.Y + DataCardKey4.Height + 4
                               - ErrorMessage4:
@@ -3022,8 +2939,8 @@ Screens:
                                     Text: =Parent.Error
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
-                                    X: =30
-                                    Y: =10
+                                    X: =24
+                                    Y: =txtProductName.Y + txtProductName.Height
                               - StarVisible4:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -3034,197 +2951,85 @@ Screens:
                                     Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =30
                                     Y: =DataCardKey4.Y
-                        - DesiredDueDate_DataCard3:
+                        - PartNo_DataCard1:
                             Control: TypedDataCard@1.0.7
-                            Variant: DateTimeEdit
+                            Variant: TextualEdit
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="DesiredDueDate"
-                              Default: =ThisItem.DesiredDueDate
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,'DesiredDueDate')
-                              Height: =77
+                              DataField: ="PartNo"
+                              Default: =ThisItem.PartNo
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'PartNo')
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'PartNo')
                               Required: =true
-                              Update: =dpDesiredDueDate.SelectedDate
+                              Update: =txtPartNo.Value
                               Width: =375
-                              X: =1
-                              Y: =3
+                              X: =0
+                              Y: =2
                             Children:
-                              - DataCardKey13:
+                              - DataCardKey5:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldName
                                   Properties:
-                                    Height: =26
-                                    Text: ="희망완료일"
+                                    Height: =22
+                                    Text: ="품번"&Parent.DisplayName
                                     Weight: ='TextCanvas.Weight'.Semibold
-                                    Width: =200
+                                    Width: =Parent.Width - 48
                                     Wrap: =false
-                                    X: =26
+                                    X: =24
                                     Y: =10
-                              - dpDesiredDueDate:
-                                  Control: ModernDatePicker@1.0.0
+                              - txtPartNo:
+                                  Control: ModernTextInput@1.0.0
+                                  MetadataKey: FieldValue
                                   Properties:
-                                    DefaultDate: |-
-                                      =If(
-                                          varRequestMode = "New",
-                                          Today(),
-                                          Parent.Default
-                                      )
-                                    Placeholder: ="날짜를 입력하세요."
-                                    Width: =302
-                                    X: =16
-                                    Y: =36
-                              - StarVisible4_1:
+                                    AccessibleLabel: =Parent.DisplayName
+                                    Default: =Parent.Default
+                                    DisplayMode: =Parent.DisplayMode
+                                    FontWeight: =""
+                                    MaxLength: =-1
+                                    Placeholder: ="품번을 입력하세요"
+                                    Required: =Parent.Required
+                                    Size: =0
+                                    TriggerOutput: =TriggerOutput.FocusOut
+                                    ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
+                                    Width: =Parent.Width - 48
+                                    X: =24
+                                    Y: =DataCardKey5.Y + DataCardKey5.Height + 4
+                              - ErrorMessage5:
                                   Control: Text@0.0.51
+                                  MetadataKey: ErrorMessage
+                                  Properties:
+                                    Height: =30
+                                    Text: =Parent.Error
+                                    Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
+                                    Width: =Parent.Width - 48
+                                    X: =24
+                                    Y: =txtPartNo.Y + txtPartNo.Height
+                              - StarVisible5:
+                                  Control: Text@0.0.51
+                                  MetadataKey: FieldRequired
                                   Properties:
                                     Align: ='TextCanvas.Align'.Center
                                     Height: =30
                                     Text: ="*"
                                     Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =30
-                                    Y: =DataCardKey4.Y
-                        - 첨부 파일_DataCard1:
+                                    Y: =DataCardKey5.Y
+                        - AnalysisReason_DataCard1:
                             Control: TypedDataCard@1.0.7
-                            Variant: ClassicAttachmentsEdit
+                            Variant: TextualEdit
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="{Attachments}"
-                              Default: =ThisItem.'첨부 파일'
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,'첨부 파일')
-                              Height: =137
-                              Required: =false
-                              Update: =DataCardValue12.Attachments
-                              Width: =375
-                              X: =0
-                              Y: =4
-                            Children:
-                              - DataCardKey12:
-                                  Control: Label@2.5.1
-                                  MetadataKey: FieldName
-                                  Properties:
-                                    AutoHeight: =true
-                                    BorderColor: =RGBA(0, 0, 0, 0)
-                                    BorderStyle: =BorderStyle.None
-                                    BorderThickness: =2
-                                    Color: =RGBA(37, 36, 35, 1)
-                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
-                                    DisabledColor: =RGBA(200, 198, 196, 1)
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    FontWeight: =FontWeight.Semibold
-                                    Height: =34
-                                    PaddingLeft: =0
-                                    Size: =10.5
-                                    Text: =Parent.DisplayName
-                                    Width: =Parent.Width - 60
-                                    Wrap: =false
-                                    X: =26
-                                    Y: =10
-                              - DataCardValue12:
-                                  Control: Attachments@2.3.0
-                                  MetadataKey: FieldValue
-                                  Properties:
-                                    BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
-                                    BorderStyle: =BorderStyle.None
-                                    Color: =RGBA(37, 36, 35, 1)
-                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
-                                    DisabledColor: =RGBA(200, 198, 196, 1)
-                                    DisabledFill: =RGBA(243, 242, 241, 1)
-                                    DisplayMode: =Parent.DisplayMode
-                                    Fill: =RGBA(243, 242, 241, 1)
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    Height: =99
-                                    HoverColor: =RGBA(37, 36, 35, 1)
-                                    HoverFill: =RGBA(243, 242, 241, 1)
-                                    ItemColor: =RGBA(0, 0, 0, 1)
-                                    ItemFill: =RGBA(237, 235, 233, 1)
-                                    ItemHoverColor: =RGBA(37, 36, 35, 1)
-                                    ItemHoverFill: =RGBA(243, 242, 241, 1)
-                                    ItemSpacing: =12
-                                    Items: =Parent.Default
-                                    MaxAttachmentSize: =100
-                                    NoAttachmentsColor: =RGBA(200, 198, 196, 1)
-                                    NoAttachmentsText: ="첨부된 파일이 없습니다."
-                                    PaddingBottom: =5
-                                    PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
-                                    PaddingRight: =5
-                                    PaddingTop: =5
-                                    PressedColor: =RGBA(255, 255, 255, 1)
-                                    PressedFill: =RGBA(237, 235, 233, 1)
-                                    Size: =10.5
-                                    Tooltip: =Parent.DisplayName
-                                    Width: =341
-                                    X: =26
-                                    Y: =DataCardKey12.Y + DataCardKey12.Height + 5
-                              - ErrorMessage12:
-                                  Control: Label@2.5.1
-                                  MetadataKey: ErrorMessage
-                                  Properties:
-                                    AutoHeight: =true
-                                    BorderColor: =RGBA(0, 0, 0, 0)
-                                    BorderStyle: =BorderStyle.None
-                                    BorderThickness: =2
-                                    Color: =RGBA(168, 0, 0, 1)
-                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
-                                    DisabledColor: =RGBA(168, 0, 0, 1)
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    FontWeight: =FontWeight.Semibold
-                                    Height: =10
-                                    Live: =Live.Assertive
-                                    PaddingBottom: =0
-                                    PaddingLeft: =0
-                                    PaddingRight: =0
-                                    PaddingTop: =0
-                                    Size: =10.5
-                                    Text: =Parent.Error
-                                    Visible: =Parent.DisplayMode=DisplayMode.Edit
-                                    Width: =Parent.Width - 60
-                                    X: =30
-                                    Y: =30
-                              - StarVisible12:
-                                  Control: Label@2.5.1
-                                  MetadataKey: FieldRequired
-                                  Properties:
-                                    Align: =Align.Center
-                                    BorderColor: =RGBA(0, 0, 0, 0)
-                                    BorderStyle: =BorderStyle.None
-                                    BorderThickness: =2
-                                    Color: =RGBA(37, 36, 35, 1)
-                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
-                                    DisabledColor: =RGBA(200, 198, 196, 1)
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    FontWeight: =FontWeight.Semibold
-                                    Height: =DataCardKey12.Height
-                                    PaddingLeft: =0
-                                    Size: =10.5
-                                    Text: ="*"
-                                    Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
-                                    Width: =30
-                                    Wrap: =false
-                                    Y: =DataCardKey12.Y
-                        - ProjectIDRef_DataCard2:
-                            Control: TypedDataCard@1.0.7
-                            Variant: NumberEdit
-                            Properties:
-                              BorderColor: =RGBA(243, 242, 241, 1)
-                              DataField: ="ProjectIDRef"
-                              Default: =ThisItem.ProjectIDRef
-                              DisplayName: =DataSourceInfo([@das],DataSourceInfo.DisplayName,'ProjectIDRef')
-                              Required: =false
-                              Update: |-
-                                =If(
-                                    IsEmpty(cmbProjectName.SelectedItems),
-                                    Blank(),
-                                    Value(First(cmbProjectName.SelectedItems).ID)
-                                )
-                              Visible: =false
+                              DataField: ="AnalysisReason"
+                              Default: =ThisItem.AnalysisReason
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'AnalysisReason')
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'AnalysisReason')
+                              Required: =true
+                              Update: =DataCardValue7.Value
                               Width: =375
                               X: =1
-                              Y: =4
+                              Y: =2
                             Children:
-                              - DataCardKey15:
+                              - DataCardKey6:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldName
                                   Properties:
@@ -3235,20 +3040,20 @@ Screens:
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - DataCardValue11:
-                                  Control: NumberInput@2.9.12
+                              - DataCardValue7:
+                                  Control: TextInput@0.0.54
                                   MetadataKey: FieldValue
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     DisplayMode: =Parent.DisplayMode
-                                    Max: =Blank()
-                                    Min: =Blank()
+                                    Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
+                                    Required: =Parent.Required
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
                                     Value: =Parent.Default
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardKey15.Y + DataCardKey15.Height + 4
-                              - ErrorMessage15:
+                                    Y: =DataCardKey6.Y + DataCardKey6.Height + 4
+                              - ErrorMessage6:
                                   Control: Text@0.0.51
                                   MetadataKey: ErrorMessage
                                   Properties:
@@ -3257,8 +3062,8 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardValue11.Y + DataCardValue11.Height
-                              - StarVisible15:
+                                    Y: =DataCardValue7.Y + DataCardValue7.Height
+                              - StarVisible6:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
                                   Properties:
@@ -3267,7 +3072,67 @@ Screens:
                                     Text: ="*"
                                     Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =30
-                                    Y: =DataCardKey15.Y
+                                    Y: =DataCardKey6.Y
+                        - AnalysisCondition_DataCard1:
+                            Control: TypedDataCard@1.0.7
+                            Variant: TextualEdit
+                            IsLocked: true
+                            Properties:
+                              BorderColor: =RGBA(243, 242, 241, 1)
+                              DataField: ="AnalysisCondition"
+                              Default: =ThisItem.AnalysisCondition
+                              DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'AnalysisCondition')
+                              MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'AnalysisCondition')
+                              Required: =true
+                              Update: =DataCardValue8.Value
+                              Width: =375
+                              X: =0
+                              Y: =3
+                            Children:
+                              - DataCardKey7:
+                                  Control: Text@0.0.51
+                                  MetadataKey: FieldName
+                                  Properties:
+                                    Height: =22
+                                    Text: =Parent.DisplayName
+                                    Weight: ='TextCanvas.Weight'.Semibold
+                                    Width: =Parent.Width - 48
+                                    Wrap: =false
+                                    X: =24
+                                    Y: =10
+                              - DataCardValue8:
+                                  Control: TextInput@0.0.54
+                                  MetadataKey: FieldValue
+                                  Properties:
+                                    AccessibleLabel: =Parent.DisplayName
+                                    DisplayMode: =Parent.DisplayMode
+                                    Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
+                                    Required: =Parent.Required
+                                    ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
+                                    Value: =Parent.Default
+                                    Width: =Parent.Width - 48
+                                    X: =24
+                                    Y: =DataCardKey7.Y + DataCardKey7.Height + 4
+                              - ErrorMessage7:
+                                  Control: Text@0.0.51
+                                  MetadataKey: ErrorMessage
+                                  Properties:
+                                    Height: =30
+                                    Text: =Parent.Error
+                                    Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
+                                    Width: =Parent.Width - 48
+                                    X: =24
+                                    Y: =DataCardValue8.Y + DataCardValue8.Height
+                              - StarVisible7:
+                                  Control: Text@0.0.51
+                                  MetadataKey: FieldRequired
+                                  Properties:
+                                    Align: ='TextCanvas.Align'.Center
+                                    Height: =30
+                                    Text: ="*"
+                                    Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                                    Width: =30
+                                    Y: =DataCardKey7.Y
                   - btnRequestSave:
                       Control: Button@0.0.45
                       Properties:
@@ -3291,7 +3156,7 @@ Screens:
                                   NotificationType.Warning
                               ),
 
-                              SubmitForm(frmRequest)
+                              SubmitForm(frmAnalysisRequest)
                           )
                         Text: ="등록"
                         Visible: =varRequestMode = "New" || varRequestMode = "Edit"
@@ -3308,10 +3173,10 @@ Screens:
                           =// =============================
                           // 입력 취소 후 팝업 닫기
                           // =============================
-                          ResetForm(frmRequest);
+                          ResetForm(frmAnalysisRequest);
                           Set(varShowRequestPopup, false);
                           Set(varRequestMode, "View");
-                          Set(varSelectedRequest, Defaults(das));
+                          Set(varSelectedRequest, Defaults(Analysis_Request_DB));
                         Text: ="취소"
                         Visible: =varRequestMode = "New" || varRequestMode = "Edit"
                         X: =732
@@ -3396,7 +3261,7 @@ Screens:
                         OnSelect: |-
                           =Set(varShowRequestPopup, false);
                           Set(varRequestMode, "View");
-                          Set(varSelectedRequest, Defaults(das));
+                          Set(varSelectedRequest, Defaults(Analysis_Request_DB));
                           Set(varSelectedImageAttachment, Blank());
                         PaddingBottom: =3
                         PaddingLeft: =3
@@ -3435,10 +3300,10 @@ Screens:
                           =// =============================
                           // 입력 취소 후 팝업 닫기
                           // =============================
-                          ResetForm(frmRequest);
+                          ResetForm(frmAnalysisRequest);
                           Set(varShowRequestPopup, false);
                           Set(varRequestMode, "View");
-                          Set(varSelectedRequest, Defaults(das));
+                          Set(varSelectedRequest, Defaults(Analysis_Request_DB));
                         PaddingBottom: =3
                         PaddingLeft: =3
                         PaddingRight: =3
@@ -3457,7 +3322,7 @@ Screens:
                         FontWeight: =FontWeight.Semibold
                         Height: =38
                         Size: =18
-                        Text: ="작업의뢰 등록"
+                        Text: ="해석 의뢰 등록"
                         Width: =132
                         X: =145
                         Y: =9
@@ -3615,7 +3480,7 @@ Screens:
                     // =============================
 
                     Patch(
-                        das,
+                        Analysis_Request_DB,
                         varSelectedRequest,
                         {
                             ApprovalState: "PendingWorker",
@@ -3673,11 +3538,11 @@ Screens:
                         )
                     );
 
-                    Refresh(das);
+                    Refresh(Analysis_Request_DB);
                     Refresh(WorkRequestComments_DB);
 
                     // 최신 데이터 다시 조회
-                    Set(varSelectedRequest, LookUp(das, ID = varSelectedRequest.ID));
+                    Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
 
                     // 팝업 닫기
                     Set(varShowSelfApproveConfirmPopup, false);
@@ -3729,14 +3594,14 @@ Screens:
                   BorderThickness: =1
                   OnSelect: |-
                     =    // 실제 삭제 로직
-                        Remove(das, varSelectedRequest);
+                        Remove(Analysis_Request_DB, varSelectedRequest);
                         RemoveIf(WorkRequestComments_DB, RequestID = varSelectedRequest.ID);
-                        Refresh(das);
+                        Refresh(Analysis_Request_DB);
                         Refresh(WorkRequestComments_DB);
                         // 팝업/폼 정리
                         Set(varShowDeleteConfirmPopup, false);
                         Set(varShowRequestPopup, false);
-                        Set(varSelectedRequest, Defaults(das));
+                        Set(varSelectedRequest, Defaults(Analysis_Request_DB));
                         Set(varToastMessage, "작업의뢰를 삭제했습니다.");
                         Set(varShowToast, true);
                   Text: ="예"
@@ -3755,8 +3620,3 @@ Screens:
                   Width: =85
                   X: =217
                   Y: =100
-      - ButtonCanvas1:
-          Control: Button@0.0.45
-          Properties:
-            X: =662
-            Y: =56
