@@ -4,21 +4,11 @@ Screens:
       Fill: =
       LoadingSpinnerColor: =RGBA(98, 100, 167, 1)
       OnVisible: |-
-        =// 앱 바로가기 URL
-        Set(
-            varAppUrl,
-            "https://apps.powerapps.com/play/e/ad9a8659-6733-e9a7-8538-15b993f9459a/a/ce55243d-1e25-4941-aa0e-aa3fdc2576ca?tenantId=f68dbec8-0e62-41cb-98b3-22f1aa40c4ea&hint=59dcc817-6c57-4dc8-ae81-5a7acfe3ae48&sourcetime=1773641347859"
-        );
-
-        //대리승인 팝업
-        Set(varShowSelfApproveConfirmPopup, false);
-
+        =// =============================
+        // [1] 현재 로그인 사용자 정보
         // =============================
-        // [1] 현재 로그인 사용자 기본 정보
-        // 사용자 이메일
         Set(varMyEmail, Lower(User().Email));
 
-        // 사용자 정보 조회
         Set(
             varMyInfo,
             LookUp(
@@ -27,127 +17,80 @@ Screens:
             )
         );
 
-        // 김승동 팀장님
-        Set(
-            varIsViewer,
-            varMyEmail in [
-                "seung.kim@tym.world",
-                "eunseong.kim@tym.world",
-                "E2603003@tym.world"
-            ]
-        );
-
-        // [1] UserInfo_DB 이름 컬럼이 있으면 우선 사용
-        Set(
-            varMyNameFromDB,
-            Coalesce(varMyInfo.이름_한글, "")
-        );
-
-        // [2] FullName 정제본
-        Set(
-            varMyNameFromFullName,
-            If(
-                IsBlank(Find("(", User().FullName)),
-                Concatenate(
-                    Trim(Right(User().FullName, Len(User().FullName) - Find(" ", User().FullName))),
-                    Trim(Left(User().FullName, Find(" ", User().FullName)))
-                ),
-                Trim(Left(User().FullName, Find("(", User().FullName) - 1))
-            )
-        );
-
-        // [3] 최종 저장용 이름
         Set(
             varMyName,
-            If(
-                !IsBlank(varMyNameFromDB),
-                varMyNameFromDB,
-                varMyNameFromFullName
+            Coalesce(
+                varMyInfo.이름_한글,
+                Trim(
+                    If(
+                        IsBlank(Find("(", User().FullName)),
+                        Concatenate(
+                            Trim(Right(User().FullName, Len(User().FullName) - Find(" ", User().FullName))),
+                            Trim(Left(User().FullName, Find(" ", User().FullName)))
+                        ),
+                        Trim(Left(User().FullName, Find("(", User().FullName) - 1))
+                    )
+                )
             )
         );
 
-        // =============================
-        // [2] 작업자 이메일 고정
-        // =============================
-        Set(varWorkerEmail, Lower("jung.kim@tym.world"));
-        //Set(varWorkerEmail, Lower("eunseong.kim@tym.world"));
-
-        // =============================
-        // [3] 현재 사용자 정보를 UserInfo_DB에서 조회
-        // - Email 컬럼 기준으로 내 정보 1건 조회
-        // =============================
-        Set(
-            varMyInfo,
-            LookUp(
-                UserInfo_DB,
-                Lower('e-mail') = varMyEmail
-            )
-        );
-
-        // =============================
-        // [4] 내 조직 정보 변수화
-        // - 이후 권한 분기, 필터, 신규 등록 시 기본값에 사용
-        // =============================
         Set(varMyDept, Coalesce(varMyInfo.부문, ""));
         Set(varMyTeam, Coalesce(varMyInfo.팀, ""));
         Set(varMyJobGrade, Coalesce(varMyInfo.직급2, ""));
 
         // =============================
-        // [5] 역할 판단
-        // - 작업자 여부
-        // - 팀장 여부
+        // [2] 역할 판단
         // =============================
-        Set(varIsWorker, varMyEmail = varWorkerEmail);
         Set(varIsTeamLeader, varMyJobGrade = "팀장");
 
+        Set(
+            varIsVAApprover,
+            varMyEmail in [
+                Lower("donggyu.lee@tym.world"), //이동규 주임
+                Lower("E2603003@tym.world")    //임서현 주임
+            ]
+        );
+
         // =============================
-        // [6] 화면 상태 변수 초기화
-        // - 팝업 열림 여부
-        // - 현재 선택한 요청
-        // - 화면 모드(New / View / Edit)
+        // [3] 가상검증 승인자 고정값
+        // 이름은 저장하지 않고 이메일만 사용
+        // =============================
+        Set(varVAApprover1Email, Lower("donggyu.lee@tym.world")); //이동규 주임
+        Set(varVAApprover2Email, Lower("E2603003@tym.world"));   //임서현 주
+
+        // =============================
+        // [4] 화면 상태 변수 초기화
         // =============================
         Set(varShowRequestPopup, false);
         Set(varRequestMode, "View");
         Set(varSelectedRequest, Defaults(Analysis_Request_DB));
 
         // =============================
-        // [7] 필터 기본값 초기화
-        // - 기간 기본값: 30일
-        // - 검색어: 빈값
-        // - 반려 포함 여부: true
-        // - 완료 포함 여부: true
+        // [5] 필터 기본값
         // =============================
         Set(varPeriodFilter, "30일");
         Set(varSearchText, "");
-        Set(varIncludeRejected, true);
         Set(varIncludeCompleted, true);
+        Set(varIncludeRejected, true);
 
-        // =============================
-        // [8] 날짜 필터용 기본 기간
-        // - 사용자 지정 필터 확장 시 그대로 활용 가능
-        // =============================
         Set(varDateFrom, DateAdd(Today(), -30, TimeUnit.Days));
         Set(varDateTo, Now());
 
         // =============================
-        // [9] 토스트/알림/로딩 관련 기본값
+        // [6] 토스트 / 팝업 상태
         // =============================
         Set(varShowToast, false);
         Set(varToastMessage, "");
 
         // =============================
-        // [10] 데이터 새로고침
-        // - 메인 요청 리스트
-        // - 댓글 리스트
-        // - 사용자 정보 리스트
+        // [7] 데이터 새로고침
         // =============================
         Refresh(Analysis_Request_DB);
-        Refresh(WorkRequestComments_DB);
+        Refresh(Analysis_Request_Revision_DB);
+        Refresh(Analysis_Request_Log_DB);
         Refresh(UserInfo_DB);
-        // 프로젝트 마스터도 새로고침
-        Refresh(Project_DB);
-        Set(varSelectedImageAttachment, Blank());
-        Set(varShowDeleteConfirmPopup, false);
+        Refresh(Analysis_Request_Files);
+        Refresh(Analysis_Report_Files);
     Children:
       - Container1:
           Control: GroupContainer@1.5.0
@@ -2536,7 +2479,7 @@ Screens:
                         NumberOfColumns: =2
                         OnSuccess: |-
                           =// =============================
-                          // 신규 저장 후 시스템 컬럼 자동 세팅
+                          // 해석 의뢰 신규 저장 후 시스템 컬럼 자동 세팅
                           // =============================
                           If(
                               varRequestMode = "New",
@@ -2544,12 +2487,18 @@ Screens:
                               // 1. 신규 의뢰번호 생성
                               Set(
                                   varNewRequestNo,
-                                  "WR-" & Text(Year(Now())) & "-" & Text(Self.LastSubmit.ID, "0000")
+                                  "AR-" & Text(Year(Now())) & "-" & Text(Self.LastSubmit.ID, "0000")
                               );
 
-                              // 2. 현재 요청자의 팀 팀장 정보 조회
+                              // 2. 내부 연결 키 생성
                               Set(
-                                  varApproverInfo,
+                                  varNewRequestIDKey,
+                                  Text(GUID())
+                              );
+
+                              // 3. 현재 요청자의 팀 팀장 정보 조회
+                              Set(
+                                  varRequesterLeaderInfo,
                                   LookUp(
                                       UserInfo_DB,
                                       팀 = varMyTeam &&
@@ -2557,102 +2506,67 @@ Screens:
                                   )
                               );
 
-                              // 3. 메인 요청 DB에 시스템 정보 보강 저장
+                              // 4. 메인 요청 DB에 시스템 정보 보강 저장
                               Patch(
                                   Analysis_Request_DB,
                                   Self.LastSubmit,
                                   {
                                       RequestNo: varNewRequestNo,
+                                      RequestIDKey: varNewRequestIDKey,
 
-                                      // 요청자 정보 스냅샷
+                                      // 요청자 정보
+                                      DepartmentName: varMyDept,
                                       RequesterName: varMyName,
                                       RequesterEmail: varMyEmail,
-                                      RequesterDeptSnapshot: varMyDept,
-                                      RequesterTeamSnapshot: varMyTeam,
-                                      RequesterJobGradeSnapshot: varMyJobGrade,
 
-                                      // 결재/진행 상태 초기값
-                                      Stage: "Start",
-                                      ApprovalState: "PendingLeader",
-                                      CloseResult: Blank(),
-                                      IsMySelfApproved: false,
+                                      // 요청자 팀장
+                                      RequesterLeaderEmail: Coalesce(varRequesterLeaderInfo.'e-mail', ""),
 
-                                      // 팀장 정보
-                                      ApproverEmail: Coalesce(varApproverInfo.'e-mail', ""),
+                                      // 가상검증 승인자 2명 고정값
+                                      VAApprover1Email: varVAApprover1Email,
+                                      VAApprover2Email: varVAApprover2Email,
 
-                                      // 작업자 정보 초기화
-                                      WorkerName: Blank(),
-                                      WorkerEmail: Blank(),
+                                      // 상태 초기값
+                                      Status: {Value:"PendingTeamLeader"},
+
+                                      // 담당자 초기값
+                                      AssigneeEmail: Blank(),
+
+                                      // 진행 관련 초기값
+                                      ProgressPct: 0,
+                                      LastRevisionNo: 0,
+                                      AssigneeLastReadRevisionNo: 0,
+                                      HasUnreadRevision: false,
+
+                                      // 보고서 관련 초기값
+                                      FinalReportAttached: false,
+                                      FinalReportFilePath: Blank(),
 
                                       // 시간 로그
                                       SubmittedAt: Now(),
+                                      LastRequesterModifiedAt: Now(),
 
-                                      // 첨부 여부
-                                      HasAttachment: CountRows(DataCardValue12.Attachments) > 0,
-
-                                      // 마지막 처리 정보
-                                      LastActionByName: varMyName,
-                                      LastActionByEmail: varMyEmail,
-                                      LastActionAt: Now()
+                                      // 활성 여부
+                                      IsActive: true
                                   }
                               );
 
-                              // 4. 저장된 최신 레코드 다시 조회
-                              Set(
-                                  varNewSavedRequest,
-                                  LookUp(Analysis_Request_DB, ID = Self.LastSubmit.ID)
-                              );
-
-                              // 5. 댓글 로그 1건 자동 생성
+                              // 5. 로그 DB에 등록 이력 저장
                               Patch(
-                                  WorkRequestComments_DB,
-                                  Defaults(WorkRequestComments_DB),
+                                  Analysis_Request_Log_DB,
+                                  Defaults(Analysis_Request_Log_DB),
                                   {
-                                      Title: "Comment",
-                                      RequestID: Self.LastSubmit.ID,
-                                      RequestTitle: Self.LastSubmit.Title,
+                                      Title: "Submit",
+                                      RequestIDKey: varNewRequestIDKey,
                                       RequestNo: varNewRequestNo,
-                                      CommentText: varMyName & "님이 작업의뢰를 등록했습니다.",
-                                      CommentType: "Submit",
-                                      CommentByName: varMyName,
-                                      CommentByEmail: varMyEmail,
-                                      CommentRole: "Requester",
-                                      CommentAt: Now(),
-                                      IsSystemComment: true,
-                                      IsVisible: true
+                                     LogType: {Value : "Submit"},
+                                      LogMessage: varMyName & "님이 해석 의뢰를 등록했습니다.",
+                                      ActionByName: varMyName,
+                                      ActionByEmail: varMyEmail,
+                                      ActionRole: "Requester",
+                                      ActionAt: Now(),
+                                      RelatedRevisionNo: 0
                                   }
-                              );
-
-                              // 6. 팀장 메일 알림
-                              If(
-                                  !IsBlank(varNewSavedRequest.ApproverEmail),
-                                  Office365Outlook.SendEmailV2(
-                                      varNewSavedRequest.ApproverEmail,
-                                      "[작업의뢰] 팀장 승인 요청 - " & varNewSavedRequest.RequestNo,
-                                      Concatenate(
-                                          "<div style='font-family:Segoe UI;'>",
-                                          "<h3>작업의뢰 승인 요청</h3>",
-                                          "<p>아래 작업의뢰에 대한 팀장 승인이 필요합니다.</p>",
-                                          "<p><b>요청번호:</b> ", varNewSavedRequest.RequestNo, "</p>",
-                                          "<p><b>제목:</b> ", varNewSavedRequest.Title, "</p>",
-                                          "<p><b>의뢰자:</b> ", varNewSavedRequest.RequesterName, "</p>",
-                                          "<p><b>팀:</b> ", varNewSavedRequest.RequesterTeamSnapshot, "</p>",
-                                          "<p><b>프로젝트:</b> ", Coalesce(varNewSavedRequest.ProjectName, "-"), "</p>",
-                                          "<p><b>희망완료일:</b> ",
-                                              If(
-                                                  IsBlank(varNewSavedRequest.DesiredDueDate),
-                                                  "-",
-                                                  Text(varNewSavedRequest.DesiredDueDate, "yyyy-mm-dd")
-                                              ),
-                                          "</p>",
-                                          "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                          "</div>"
-                                      ),
-                                      {
-                                          IsHtml: true,
-                                          Importance: "High"
-                                      }
-                                  )
                               )
                           );
 
@@ -2660,14 +2574,15 @@ Screens:
                           // 저장 후 공통 처리
                           // =============================
                           Refresh(Analysis_Request_DB);
-                          Refresh(WorkRequestComments_DB);
+                          Refresh(Analysis_Request_Log_DB);
+                          Refresh(UserInfo_DB);
 
                           ResetForm(frmAnalysisRequest);
                           Set(varShowRequestPopup, false);
                           Set(varRequestMode, "View");
                           Set(varSelectedRequest, Defaults(Analysis_Request_DB));
 
-                          Set(varToastMessage, "작업의뢰가 등록되었습니다.");
+                          Set(varToastMessage, "해석 의뢰가 등록되었습니다.");
                           Set(varShowToast, true);
                         Width: =751
                         X: =135
@@ -2683,7 +2598,7 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,제목)
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 제목)
                               Required: =false
-                              Update: =DataCardValue1.Value
+                              Update: =txtAnalysisTitle.Text
                               Width: =750
                               X: =0
                               Y: =0
@@ -2708,7 +2623,7 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardValue1.Y + DataCardValue1.Height
+                                    Y: =txtAnalysisTitle.Y + txtAnalysisTitle.Height
                               - StarVisible1:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -2738,16 +2653,19 @@ Screens:
                                     Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =30
                                     Y: =2
-                              - DataCardValue1:
-                                  Control: TextInput@0.0.54
+                              - txtAnalysisTitle:
+                                  Control: ModernTextInput@1.0.0
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
+                                    Default: =Parent.Default
                                     DisplayMode: =Parent.DisplayMode
-                                    Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
+                                    FontWeight: =""
+                                    MaxLength: =-1
                                     Placeholder: ="해석명을 입력하세요."
                                     Required: =Parent.Required
+                                    Size: =0
+                                    TriggerOutput: =TriggerOutput.FocusOut
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
-                                    Value: =Parent.Default
                                     Width: =670
                                     X: =24
                                     Y: =35
@@ -2769,7 +2687,8 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'DepartmentName')
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'DepartmentName')
                               Required: =true
-                              Update: =DataCardValue2.Value
+                              Update: =txtDepartmentName.Value
+                              Visible: =false
                               Width: =375
                               X: =1
                               Y: =0
@@ -2785,7 +2704,7 @@ Screens:
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - DataCardValue2:
+                              - txtDepartmentName:
                                   Control: TextInput@0.0.54
                                   MetadataKey: FieldValue
                                   Properties:
@@ -2794,7 +2713,7 @@ Screens:
                                     Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
                                     Required: =Parent.Required
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
-                                    Value: =Parent.Default
+                                    Value: =If(varRequestMode = "New", varMyDept, Parent.Default)
                                     Width: =Parent.Width - 48
                                     X: =24
                                     Y: =DataCardKey2.Y + DataCardKey2.Height + 4
@@ -2807,7 +2726,7 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardValue2.Y + DataCardValue2.Height
+                                    Y: =txtDepartmentName.Y + txtDepartmentName.Height
                               - StarVisible2:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -2821,7 +2740,6 @@ Screens:
                         - RequesterName_DataCard1:
                             Control: TypedDataCard@1.0.7
                             Variant: TextualEdit
-                            IsLocked: true
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
                               DataField: ="RequesterName"
@@ -2829,7 +2747,8 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'RequesterName')
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'RequesterName')
                               Required: =true
-                              Update: =DataCardValue4.Value
+                              Update: =txtRequesterName.Value
+                              Visible: =false
                               Width: =375
                               X: =0
                               Y: =1
@@ -2845,7 +2764,7 @@ Screens:
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - DataCardValue4:
+                              - txtRequesterName:
                                   Control: TextInput@0.0.54
                                   MetadataKey: FieldValue
                                   Properties:
@@ -2854,7 +2773,7 @@ Screens:
                                     Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
                                     Required: =Parent.Required
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
-                                    Value: =Parent.Default
+                                    Value: =If(varRequestMode = "New", varMyName, Parent.Default)
                                     Width: =Parent.Width - 48
                                     X: =24
                                     Y: =DataCardKey3.Y + DataCardKey3.Height + 4
@@ -2867,7 +2786,7 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardValue4.Y + DataCardValue4.Height
+                                    Y: =txtRequesterName.Y + txtRequesterName.Height
                               - StarVisible3:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -2888,7 +2807,7 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'ProductName')
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'ProductName')
                               Required: =true
-                              Update: =txtProductName.Value
+                              Update: =txtProductName.Text
                               Width: =375
                               X: =1
                               Y: =1
@@ -2961,7 +2880,7 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'PartNo')
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'PartNo')
                               Required: =true
-                              Update: =txtPartNo.Value
+                              Update: =txtPartNo.Text
                               Width: =375
                               X: =0
                               Y: =2
@@ -3024,32 +2943,47 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'AnalysisReason')
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'AnalysisReason')
                               Required: =true
-                              Update: =DataCardValue7.Value
+                              Update: =Trim(txtAnalysisReason.Text)
                               Width: =375
                               X: =1
                               Y: =2
                             Children:
                               - DataCardKey6:
-                                  Control: Text@0.0.51
+                                  Control: ModernText@1.0.0
                                   MetadataKey: FieldName
                                   Properties:
+                                    FontWeight: =FontWeight.Semibold
                                     Height: =22
-                                    Text: =Parent.DisplayName
-                                    Weight: ='TextCanvas.Weight'.Semibold
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                    Size: =14
+                                    Text: ="해석사유"&Parent.DisplayName
+                                    VerticalAlign: =VerticalAlign.Top
                                     Width: =Parent.Width - 48
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - DataCardValue7:
-                                  Control: TextInput@0.0.54
+                              - txtAnalysisReason:
+                                  Control: ModernTextInput@1.0.0
                                   MetadataKey: FieldValue
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
+                                    Default: =Parent.Default
                                     DisplayMode: =Parent.DisplayMode
-                                    Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
+                                    FontWeight: =""
+                                    MaxLength: =-1
+                                    Placeholder: ="해석 사유를 입력하세요."
                                     Required: =Parent.Required
+                                    Size: =0
+                                    TriggerOutput: =TriggerOutput.FocusOut
+                                    Type: =TextInputType.Multiline
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
-                                    Value: =Parent.Default
                                     Width: =Parent.Width - 48
                                     X: =24
                                     Y: =DataCardKey6.Y + DataCardKey6.Height + 4
@@ -3062,7 +2996,7 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardValue7.Y + DataCardValue7.Height
+                                    Y: =txtAnalysisReason.Y + txtAnalysisReason.Height
                               - StarVisible6:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -3076,7 +3010,6 @@ Screens:
                         - AnalysisCondition_DataCard1:
                             Control: TypedDataCard@1.0.7
                             Variant: TextualEdit
-                            IsLocked: true
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
                               DataField: ="AnalysisCondition"
@@ -3084,32 +3017,47 @@ Screens:
                               DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'AnalysisCondition')
                               MaxLength: =DataSourceInfo([@Analysis_Request_DB], DataSourceInfo.MaxLength, 'AnalysisCondition')
                               Required: =true
-                              Update: =DataCardValue8.Value
+                              Update: =Trim(txtAnalysisCondition.Text)
                               Width: =375
                               X: =0
                               Y: =3
                             Children:
                               - DataCardKey7:
-                                  Control: Text@0.0.51
+                                  Control: ModernText@1.0.0
                                   MetadataKey: FieldName
                                   Properties:
+                                    FontWeight: =FontWeight.Semibold
                                     Height: =22
-                                    Text: =Parent.DisplayName
-                                    Weight: ='TextCanvas.Weight'.Semibold
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                    Size: =14
+                                    Text: ="해석 조건 및 검토사항"&Parent.DisplayName
+                                    VerticalAlign: =VerticalAlign.Top
                                     Width: =Parent.Width - 48
                                     Wrap: =false
                                     X: =24
                                     Y: =10
-                              - DataCardValue8:
-                                  Control: TextInput@0.0.54
+                              - txtAnalysisCondition:
+                                  Control: ModernTextInput@1.0.0
                                   MetadataKey: FieldValue
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
+                                    Default: =Parent.Default
                                     DisplayMode: =Parent.DisplayMode
-                                    Mode: ="'TextInputCanvas.Mode'.TextInputModeSingleLine"
+                                    FontWeight: =""
+                                    MaxLength: =-1
+                                    Placeholder: ="해석 조건 및 검토사항을 입력하세요."
                                     Required: =Parent.Required
+                                    Size: =0
+                                    TriggerOutput: =TriggerOutput.FocusOut
+                                    Type: =TextInputType.Multiline
                                     ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
-                                    Value: =Parent.Default
                                     Width: =Parent.Width - 48
                                     X: =24
                                     Y: =DataCardKey7.Y + DataCardKey7.Height + 4
@@ -3122,7 +3070,7 @@ Screens:
                                     Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =Parent.Width - 48
                                     X: =24
-                                    Y: =DataCardValue8.Y + DataCardValue8.Height
+                                    Y: =txtAnalysisCondition.Y + txtAnalysisCondition.Height
                               - StarVisible7:
                                   Control: Text@0.0.51
                                   MetadataKey: FieldRequired
@@ -3141,18 +3089,15 @@ Screens:
                         BorderStyle: =BorderStyle.Solid
                         BorderThickness: =1
                         OnSelect: |-
-                          =// =============================
-                          // 신규/수정 저장 전 필수값 점검
-                          // =============================
-                          If(
-                              IsEmpty(cmbProjectName.SelectedItems) ||
-                             // IsBlank(Trim(txtRelatedModel.Value)) ||
-                              IsBlank(Trim(txtPartDescription.Value)) ||
-                              //IsBlank(Trim(txtRequestQty.Value)) ||
-                              IsBlank(dpDesiredDueDate.SelectedDate),
+                          =If(
+                              IsBlank(Trim(txtAnalysisTitle.Text)) || 
+                              IsBlank(Trim(txtProductName.Text)) ||
+                              IsBlank(Trim(txtPartNo.Text)) ||
+                              IsBlank(Trim(txtAnalysisReason.Text)) ||
+                              IsBlank(Trim(txtAnalysisCondition.Text)),
 
                               Notify(
-                                  "프로젝트명, 관련기종, 품번(내용), 수량, 희망완료일을 모두 입력해 주세요.",
+                                  "해석명, 품명, 품번, 해석사유, 해석조건 및 검토사항을 모두 입력해 주세요.",
                                   NotificationType.Warning
                               ),
 
