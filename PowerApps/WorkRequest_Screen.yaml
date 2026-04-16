@@ -204,7 +204,7 @@ Screens:
 
                     // 팝업 열기
                     Set(varShowRequestPopup, true);
-                  Text: ="해석의뢰"
+                  Text: ="해석 의뢰"
                   VerticalAlign: =VerticalAlign.Middle
                   Width: =95
                   X: =12
@@ -633,39 +633,28 @@ Screens:
                         FocusedBorderColor: =RGBA(98, 100, 167, 1)
                         FocusedBorderThickness: =2
                         Items: |-
-                          =If(
-                              varIsWorker || varIsViewer,
-                              // 작업자일 때: 본인이 맡은 작업만 표시
-                              SortByColumns(
-                                  Filter(
-                                      Analysis_Request_DB,
-                                      SubmittedAt >= varDateFrom,
-                                      SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
-                                      Stage = "InProgress",
-                                      IsBlank(txtSearch.Text) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                          =SortByColumns(
+                              Filter(
+                                  Analysis_Request_DB,
+
+                                  SubmittedAt >= varDateFrom,
+                                  SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
+
+                                  Status.Value = "InProgress",
+
+                                  If(
+                                      Lower(AssigneeEmail) = varMyEmail,
+                                      true,
+                                      Lower(RequesterEmail) = varMyEmail
                                   ),
-                                  "StartedAt",
-                                  SortOrder.Descending
+
+                                  IsBlank(Trim(txtSearch.Text)) ||
+                                  Lower(Trim(txtSearch.Text)) in Lower(Title) ||
+                                  Lower(Trim(txtSearch.Text)) in Lower(RequesterName) ||
+                                  Lower(Trim(txtSearch.Text)) in Lower(RequestNo)
                               ),
-                              // 팀장·일반 사용자: 본인이 등록한 작업만 표시
-                              SortByColumns(
-                                  Filter(
-                                      Analysis_Request_DB,
-                                      SubmittedAt >= varDateFrom,
-                                      SubmittedAt < DateAdd(Today(), 1, TimeUnit.Days),
-                                      Stage = "InProgress",
-                                      RequesterEmail = varMyEmail,
-                                      IsBlank(txtSearch.Text) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
-                                  ),
-                                  "StartedAt",
-                                  SortOrder.Descending
-                              )
+                              "SubmittedAt",
+                              SortOrder.Descending
                           )
                         TemplateSize: =86
                         Width: =315
@@ -697,11 +686,11 @@ Screens:
                               Height: =25
                               OnSelect: =Select(Parent)
                               TabIndex: =-1
-                              Text: =ThisItem.RequesterName & " / " & ThisItem.RequesterTeamSnapshot
+                              Text: =ThisItem.RequesterName
                               VerticalAlignment: =VerticalAlign.Top
                               Width: =Parent.TemplateWidth - 24
                               X: =16
-                              Y: =46
+                              Y: =44
                         - Title_1:
                             Control: FluentV8/Label@1.8.6
                             Properties:
@@ -716,40 +705,40 @@ Screens:
                               VerticalAlignment: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth - 24
                               X: =16
-                              Y: =23
+                              Y: =21
                         - Stage_1:
                             Control: Badge@0.0.24
                             Properties:
                               Appearance: ='BadgeCanvas.Appearance'.Outline
                               BasePaletteColor: |-
                                 =Switch(
-                                    ThisItem.ApprovalState,
-                                    "PendingLeader", RGBA(254, 243, 199, 1),
-                                    "PendingWorker", RGBA(255, 237, 213, 1),
-                                    "AcceptedByWorker", If(ThisItem.Stage = "Completed", RGBA(220, 252, 231, 1), RGBA(224, 242, 254, 1)),
-                                    "RejectedByLeader", RGBA(254, 226, 226, 1),
-                                    "RejectedByWorker", RGBA(254, 226, 226, 1),
+                                    ThisItem.Status.Value,
+                                    "PendingTeamLeader", RGBA(254, 243, 199, 1),
+                                    "PendingVAApproval", RGBA(255, 237, 213, 1),
+                                    "InProgress", RGBA(224, 242, 254, 1),
+                                    "Completed", RGBA(220, 252, 231, 1),
+                                    "Rejected", RGBA(254, 226, 226, 1),
                                     RGBA(241, 245, 249, 1)
                                 )
                               Content: |-
                                 =Switch(
-                                    ThisItem.ApprovalState,
-                                    "PendingLeader", "팀장 승인대기",
-                                    "PendingWorker", "작업자 수락대기",
-                                    "AcceptedByWorker", If(ThisItem.Stage = "Completed", "작업완료", "작업중"),
-                                    "RejectedByLeader", "팀장 반려",
-                                    "RejectedByWorker", "작업자 반려",
+                                    ThisItem.Status.Value,
+                                    "PendingTeamLeader", "팀장 승인대기",
+                                    "PendingVAApproval", "가상검증 승인대기",
+                                    "InProgress", "진행중",
+                                    "Completed", "완료",
+                                    "Rejected", "반려",
                                     "-"
                                 )
                               Font: =Font.Verdana
                               FontColor: |-
                                 =Switch(
-                                    ThisItem.ApprovalState,
-                                    "PendingLeader", RGBA(180, 83, 9, 1),
-                                    "PendingWorker", RGBA(194, 65, 12, 1),
-                                    "AcceptedByWorker", If(ThisItem.Stage = "Completed", RGBA(21, 128, 61, 1), RGBA(3, 105, 161, 1)),
-                                    "RejectedByLeader", RGBA(185, 28, 28, 1),
-                                    "RejectedByWorker", RGBA(185, 28, 28, 1),
+                                    ThisItem.Status.Value,
+                                    "PendingTeamLeader", RGBA(180, 83, 9, 1),
+                                    "PendingVAApproval", RGBA(194, 65, 12, 1),
+                                    "InProgress", RGBA(3, 105, 161, 1),
+                                    "Completed", RGBA(21, 128, 61, 1),
+                                    "Rejected", RGBA(185, 28, 28, 1),
                                     RGBA(71, 85, 105, 1)
                                 )
                               FontSize: =9
@@ -758,36 +747,15 @@ Screens:
                               Shape: ='BadgeCanvas.Shape'.Circular
                               Width: =75
                               X: =12
-                              Y: =5
+                              Y: =3
                         - Text5_1:
                             Control: ModernText@1.0.0
                             Properties:
-                              Color: |-
-                                =If(
-                                    IsBlank(ThisItem.DesiredDueDate),
-                                    RGBA(100, 116, 139, 1),
-                                    If(
-                                        ThisItem.DesiredDueDate < Today(),
-                                        RGBA(220, 38, 38, 1),
-                                        If(
-                                            DateDiff(Today(), ThisItem.DesiredDueDate, TimeUnit.Days) <= 3,
-                                            RGBA(217, 119, 6, 1),
-                                            RGBA(100, 116, 139, 1)
-                                        )
-                                    )
-                                )
                               Font: =Font.Verdana
                               Height: =22
                               OnSelect: =Select(Parent)
                               Size: =8.5
-                              Text: |-
-                                ="요청 " & Text(ThisItem.SubmittedAt, "yyyy.mm.dd") &
-                                "  | 🔴 마감 " &
-                                If(
-                                    IsBlank(ThisItem.DesiredDueDate),
-                                    "-",
-                                    Text(ThisItem.DesiredDueDate, "yyyy.mm.dd")
-                                )
+                              Text: ="요청일 " & Text(ThisItem.SubmittedAt, "yyyy.mm.dd")
                               Width: =Parent.TemplateWidth - 24
                               X: =12
                               Y: =64
@@ -803,34 +771,6 @@ Screens:
                               OnSelect: |-
                                 =Set(varSelectedRequest, ThisItem);
                                 Set(varRequestMode, "View");
-                                Set(
-                                    varSelectedImageAttachment,
-                                    If(
-                                        CountRows(
-                                            Filter(
-                                                ThisItem.'첨부 파일',
-                                                EndsWith(Lower(DisplayName), ".jpg") ||
-                                                EndsWith(Lower(DisplayName), ".jpeg") ||
-                                                EndsWith(Lower(DisplayName), ".png") ||
-                                                EndsWith(Lower(DisplayName), ".gif") ||
-                                                EndsWith(Lower(DisplayName), ".bmp") ||
-                                                EndsWith(Lower(DisplayName), ".webp")
-                                            )
-                                        ) > 0,
-                                        First(
-                                            Filter(
-                                                ThisItem.'첨부 파일',
-                                                EndsWith(Lower(DisplayName), ".jpg") ||
-                                                EndsWith(Lower(DisplayName), ".jpeg") ||
-                                                EndsWith(Lower(DisplayName), ".png") ||
-                                                EndsWith(Lower(DisplayName), ".gif") ||
-                                                EndsWith(Lower(DisplayName), ".bmp") ||
-                                                EndsWith(Lower(DisplayName), ".webp")
-                                            )
-                                        ),
-                                        Blank()
-                                    )
-                                );
                                 Set(varShowRequestPopup, true);
                               PressedFill: =
                               TabIndex: =0
@@ -1230,7 +1170,7 @@ Screens:
                             Properties:
                               Font: =Font.Verdana
                               Size: =13
-                              Text: =varSelectedRequest.RequesterTeamSnapshot
+                              Text: =varSelectedRequest.
                               Width: =132
                               X: =540
                               Y: =48
@@ -1464,7 +1404,7 @@ Screens:
                               Color: =RGBA(17, 24, 39, 1)
                               Font: =Font.Verdana
                               Size: =13
-                              Text: =Coalesce(varSelectedRequest.ProjectName, "-")
+                              Text: =Coalesce(varSelectedRequest., "-")
                               Width: =209
                               X: =140
                               Y: =56
@@ -1970,12 +1910,9 @@ Screens:
                         Fill: =RGBA(255, 255, 255, 1)
                         Height: =100
                         Visible: |-
-                          =varIsWorker &&
-                          (
-                              (varSelectedRequest.Stage = "Start" && varSelectedRequest.ApprovalState = "PendingWorker")
-                              ||
-                              (varSelectedRequest.Stage = "InProgress" && varSelectedRequest.ApprovalState = "AcceptedByWorker")
-                          )
+                          =//varSelectedRequest.Status.Value = "InProgress" &&
+                          //Lower(varSelectedRequest.AssigneeEmail) = Lower(varMyEmail)
+                          true
                         Width: =941
                         X: =39
                         Y: =510
@@ -2020,132 +1957,8 @@ Screens:
                                     "작업 진행 후 완료 처리하거나, 불가 시 반려해주세요."
                                 )
                               Width: =343
-                              X: =118
-                              Y: =8
-                        - btnWorkerReject:
-                            Control: Button@0.0.45
-                            Properties:
-                              BasePaletteColor: =RGBA(220, 38, 38, 1)
-                              BorderColor: =RGBA(203, 213, 225, 1)
-                              BorderStyle: =BorderStyle.Solid
-                              BorderThickness: =1
-                              Font: =Font.Verdana
-                              FontSize: =14
-                              OnSelect: |-
-                                =If(
-                                    IsBlank(Trim(txtWorkerRejectReason.Text)),
-                                    Notify("반려 사유를 입력해 주세요.", NotificationType.Warning),
-                                    Patch(
-                                        Analysis_Request_DB,
-                                        varSelectedRequest,
-                                        {
-                                            Stage: "Completed",
-                                            ApprovalState: "RejectedByWorker",
-                                            CloseResult: "Cancelled",
-                                            WorkerName: varMyName,
-                                            WorkerEmail: varMyEmail,
-                                            RejectedAt: Now(),
-                                            RejectedByName: varMyName,
-                                            RejectedByEmail: varMyEmail,
-                                            RejectReason: Trim(txtWorkerRejectReason.Text),
-                                            LastActionByName: varMyName,
-                                            LastActionByEmail: varMyEmail,
-                                            LastActionAt: Now()
-                                        }
-                                    );
-                                    // 댓글 로그 추가 (기존과 동일)
-                                    Patch(
-                                        WorkRequestComments_DB,
-                                        Defaults(WorkRequestComments_DB),
-                                        {
-                                            Title: "Comment",
-                                            RequestID: varSelectedRequest.ID,
-                                            RequestTitle: varSelectedRequest.제목,
-                                            RequestNo: varSelectedRequest.RequestNo,
-                                            CommentText: varMyName & "님이 작업을 반려했습니다. 사유: " & Trim(txtWorkerRejectReason.Text),
-                                            CommentType: "WorkerReject",
-                                            CommentByName: varMyName,
-                                            CommentByEmail: varMyEmail,
-                                            CommentRole: "Worker",
-                                            CommentAt: Now(),
-                                            IsSystemComment: true,
-                                            IsVisible: true
-                                        }
-                                    );
-
-                                    // 팀장 메일 발송
-                                    If(
-                                        !IsBlank(varSelectedRequest.ApproverEmail),
-                                        Office365Outlook.SendEmailV2(
-                                            varSelectedRequest.ApproverEmail,
-                                            "[작업의뢰] 작업자 반려 - " & varSelectedRequest.RequestNo,
-                                            Concatenate(
-                                                "<div style='font-family:Segoe UI;'>",
-                                                "<h3>작업자 반려 안내</h3>",
-                                                "<p>작업자가 아래 작업의뢰를 반려했습니다.</p>",
-                                                "<p><b>요청번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                                "<p><b>제목:</b> ", varSelectedRequest.제목, "</p>",
-                                                "<p><b>작업자:</b> ", varMyName, "</p>",
-                                                "<p><b>반려사유:</b> ", Trim(txtWorkerRejectReason.Text), "</p>",
-                                                "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                                "</div>"
-                                            ),
-                                            {
-                                                IsHtml: true,
-                                                Importance: "High"
-                                            }
-                                        )
-                                    );
-
-                                    // 의뢰자 메일 발송
-                                    If(
-                                        !IsBlank(varSelectedRequest.RequesterEmail),
-                                        Office365Outlook.SendEmailV2(
-                                            varSelectedRequest.RequesterEmail,
-                                            "[작업의뢰] 작업자 반려 - " & varSelectedRequest.RequestNo,
-                                            Concatenate(
-                                                "<div style='font-family:Segoe UI;'>",
-                                                "<h3>작업자 반려 안내</h3>",
-                                                "<p>의뢰하신 작업이 작업자에 의해 반려되었습니다.</p>",
-                                                "<p><b>요청번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                                "<p><b>제목:</b> ", varSelectedRequest.제목, "</p>",
-                                                "<p><b>작업자:</b> ", varMyName, "</p>",
-                                                "<p><b>반려사유:</b> ", Trim(txtWorkerRejectReason.Text), "</p>",
-                                                "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                                "</div>"
-                                            ),
-                                            {
-                                                IsHtml: true,
-                                                Importance: "High"
-                                            }
-                                        )
-                                    );
-
-                                    Refresh(Analysis_Request_DB);
-                                    Refresh(WorkRequestComments_DB);
-                                    Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
-
-                                    Set(varToastMessage, "작업자 반려가 완료되었습니다.");
-                                    Set(varShowToast, true)
-                                )
-                              Text: |-
-                                =If(
-                                    varSelectedRequest.Stage = "Start" && varSelectedRequest.ApprovalState = "PendingWorker",
-                                    "반려",
-                                    "작업 반려"
-                                )
-                              Visible: |-
-                                =    varIsWorker &&
-                                    (
-                                        (varSelectedRequest.Stage = "Start" 
-                                         && varSelectedRequest.ApprovalState = "PendingWorker")
-                                        ||
-                                        (varSelectedRequest.Stage = "InProgress"
-                                         && varSelectedRequest.ApprovalState = "AcceptedByWorker")
-                                    )
-                              Width: =88
                               X: =136
-                              Y: =53
+                              Y: =7
                         - btnCompleteWork:
                             Control: Button@0.0.45
                             Properties:
@@ -2254,139 +2067,66 @@ Screens:
                                 Set(varToastMessage, "작업 완료 처리되었습니다.");
                                 Set(varShowToast, true);
                               Text: ="작업 완료"
-                              Visible: |-
-                                =varIsWorker &&
-                                varSelectedRequest.Stage = "InProgress" &&
-                                varSelectedRequest.ApprovalState = "AcceptedByWorker"
                               Width: =88
-                              X: =27
+                              X: =11
                               Y: =53
-                        - txtWorkerRejectReason:
-                            Control: ModernTextInput@1.0.0
+                        - txtWorkerMemo:
+                            Control: FluentV8/TextBox@1.7.2
                             Properties:
-                              BorderColor: =RGBA(226, 232, 240, 1)
-                              BorderStyle: =BorderStyle.Solid
-                              BorderThickness: =1
-                              Color: =RGBA(17, 24, 39, 1)
-                              Fill: =RGBA(248, 250, 252, 1)
-                              Font: =Font.Verdana
-                              Placeholder: ="반려 사유를 입력하세요"
-                              Size: =13
-                              Visible: |-
-                                =    varIsWorker &&
-                                    (
-                                        (varSelectedRequest.Stage = "Start" 
-                                         && varSelectedRequest.ApprovalState = "PendingWorker")
-                                        ||
-                                        (varSelectedRequest.Stage = "InProgress"
-                                         && varSelectedRequest.ApprovalState = "AcceptedByWorker")
-                                    )
-                              Width: =678
-                              X: =240
+                              ColorBackground: =RGBA(245, 245, 245, 1)
+                              Mode: ='TextBox.Mode'.Multiline
+                              Placeholder: ="작업 메모를 입력하세요."
+                              Value: =Coalesce(varSelectedRequest.WorkerMemo, "")
+                              Width: =197
+                              X: =456
                               Y: =53
-                        - btnWorkerAccept:
+                        - btnSaveWorkProgress:
                             Control: Button@0.0.45
                             Properties:
                               Appearance: ='ButtonCanvas.Appearance'.Secondary
                               BorderColor: =RGBA(0, 0, 0, 1)
                               BorderStyle: =BorderStyle.Solid
                               BorderThickness: =1
-                              Font: =Font.Verdana
-                              FontSize: =14
                               OnSelect: |-
                                 =Patch(
                                     Analysis_Request_DB,
                                     varSelectedRequest,
                                     {
-                                        Stage: "InProgress",
-                                        ApprovalState: "AcceptedByWorker",
-                                        WorkerName: varMyName,
-                                        WorkerEmail: varMyEmail,
-                                        StartedAt: Now(),
-                                        LastActionByName: varMyName,
-                                        LastActionByEmail: varMyEmail,
-                                        LastActionAt: Now()
+                                        ProgressPct: Round(sldProgressPct.Value, 0),
+                                        ExpectedFinishDate: dpExpectedFinishDate.SelectedDate,
+                                        WorkerMemo: Trim(txtWorkerMemo.Value)
                                     }
                                 );
 
                                 Patch(
-                                    WorkRequestComments_DB,
-                                    Defaults(WorkRequestComments_DB),
+                                    Analysis_Request_Log_DB,
+                                    Defaults(Analysis_Request_Log_DB),
                                     {
-                                        Title: "Comment",
-                                        RequestID: varSelectedRequest.ID,
-                                        RequestTitle: varSelectedRequest.제목,
+                                        Title: "ProgressUpdate",
+                                        RequestIDKey: varSelectedRequest.RequestIDKey,
                                         RequestNo: varSelectedRequest.RequestNo,
-                                        CommentText: varMyName & "님이 작업을 수락하여 진행중 상태로 변경되었습니다.",
-                                        CommentType: "WorkerAccept",
-                                        CommentByName: varMyName,
-                                        CommentByEmail: varMyEmail,
-                                        CommentRole: "Worker",
-                                        CommentAt: Now(),
-                                        IsSystemComment: true,
-                                        IsVisible: true
+                                        LogType: { Value: "ProgressUpdate" },
+                                        LogMessage: varMyName & "님이 진행정보를 업데이트했습니다. 진행률: " & Text(Round(sldProgressPct.Value, 0), "0") & "%",
+                                        ActionByName: varMyName,
+                                        ActionByEmail: varMyEmail,
+                                        ActionRole: "Assignee",
+                                        ActionAt: Now(),
+                                        RelatedRevisionNo: varSelectedRequest.LastRevisionNo
                                     }
                                 );
 
-                                // 팀장 메일
-                                If(
-                                    !IsBlank(varSelectedRequest.ApproverEmail),
-                                    Office365Outlook.SendEmailV2(
-                                        varSelectedRequest.ApproverEmail,
-                                        "[작업의뢰] 작업자 수락 완료 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>작업자 수락 완료</h3>",
-                                            "<p>작업자가 작업을 수락하여 진행중 상태로 전환되었습니다.</p>",
-                                            "<p><b>요청번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>제목:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>작업자:</b> ", varMyName, "</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "Normal"
-                                        }
-                                    )
-                                );
-
-                                // 의뢰자 메일
-                                If(
-                                    !IsBlank(varSelectedRequest.RequesterEmail),
-                                    Office365Outlook.SendEmailV2(
-                                        varSelectedRequest.RequesterEmail,
-                                        "[작업의뢰] 작업 시작 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>작업 시작 안내</h3>",
-                                            "<p>작업자가 작업을 수락하여 작업이 시작되었습니다.</p>",
-                                            "<p><b>요청번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>제목:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>작업자:</b> ", varMyName, "</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "Normal"
-                                        }
-                                    )
-                                );
-
                                 Refresh(Analysis_Request_DB);
-                                Refresh(WorkRequestComments_DB);
-                                Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
+                                Refresh(Analysis_Request_Log_DB);
 
-                                Set(varToastMessage, "작업자가 작업을 수락했습니다.");
+                                Set(
+                                    varSelectedRequest,
+                                    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
+                                );
+
+                                Set(varToastMessage, "진행 정보가 저장되었습니다.");
                                 Set(varShowToast, true);
-                              Text: ="수락"
-                              Visible: |-
-                                =varIsWorker &&
-                                varSelectedRequest.Stage = "Start" &&
-                                varSelectedRequest.ApprovalState = "PendingWorker"
-                              Width: =88
-                              X: =29
+                              Text: ="저장"
+                              X: =259
                               Y: =53
                   - conVAApproveAction:
                       Control: GroupContainer@1.5.0
@@ -3369,7 +3109,7 @@ Screens:
                           )
                         Content: |-
                           =Switch(
-                              varSelectedRequest.ApprovalState,
+                              varSelectedRequest.Stage,
                               "PendingLeader", "팀장 승인대기",
                               "PendingWorker", "작업자 수락대기",
                               "AcceptedByWorker", If(varSelectedRequest.Stage = "Completed", "작업완료", "작업중"),
@@ -3436,6 +3176,22 @@ Screens:
                         Width: =32
                         X: =974
                         Y: =11
+                  - sldProgressPct:
+                      Control: FluentV8/Slider@1.6.8
+                      Properties:
+                        Max: =100
+                        Step: =5
+                        Value: =Coalesce(varSelectedRequest.ProgressPct, 0)
+                        Width: =159
+                        X: =428
+                        Y: =48
+                  - dpExpectedFinishDate:
+                      Control: ModernDatePicker@1.0.0
+                      Properties:
+                        DefaultDate: =varSelectedRequest.ExpectedFinishDate
+                        Width: =201
+                        X: =587
+                        Y: =48
             - Container5:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
