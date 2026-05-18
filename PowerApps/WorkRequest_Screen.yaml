@@ -551,7 +551,7 @@ Screens:
                         FieldType: ="s"
                         Order: =1
             - txtSearch:
-                Control: ModernTextInput@1.0.0
+                Control: ModernTextInput@1.1.0
                 Properties:
                   Default: |+
                     =
@@ -2528,7 +2528,7 @@ Screens:
                               X: =164
                               Y: =54
                         - drpAssignee:
-                            Control: ModernCombobox@1.0.0
+                            Control: ModernCombobox@1.1.0
                             Properties:
                               InputTextPlaceholder: ="담당자 지정"
                               ItemDisplayText: =ThisItem.이름_한글
@@ -2545,7 +2545,7 @@ Screens:
                               X: =29
                               Y: =54
                         - txtVARejectReason:
-                            Control: ModernTextInput@1.0.0
+                            Control: ModernTextInput@1.1.0
                             Properties:
                               Placeholder: ="반려 사유를 입력하세요."
                               Width: =544
@@ -2875,7 +2875,7 @@ Screens:
                                     Width: =30
                                     Y: =2
                               - txtAnalysisTitle:
-                                  Control: ModernTextInput@1.0.0
+                                  Control: ModernTextInput@1.1.0
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     Default: =Parent.Default
@@ -3046,7 +3046,7 @@ Screens:
                                     X: =24
                                     Y: =10
                               - txtProductName:
-                                  Control: ModernTextInput@1.0.0
+                                  Control: ModernTextInput@1.1.0
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     Default: =Parent.Default
@@ -3105,7 +3105,7 @@ Screens:
                                     X: =24
                                     Y: =10
                               - txtPartNo:
-                                  Control: ModernTextInput@1.0.0
+                                  Control: ModernTextInput@1.1.0
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     Default: =Parent.Default
