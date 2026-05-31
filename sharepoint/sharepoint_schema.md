@@ -1,146 +1,224 @@
-# SharePoint Schema – Analysis Request System
+# SharePoint List 스키마 정의
 
-본 문서는 해석 의뢰 현황판 시스템에서 사용하는 SharePoint 데이터 구조의 최신 기준을 정의합니다.  
-본 시스템은 **Power Apps + SharePoint** 기반으로 동작하며, 현재 아래 저장소를 사용합니다.
-
----
-
-# 전체 구조
-
-## Lists
-- `Analysis_Request_DB` : 메인 의뢰 리스트
-- `Analysis_Request_Revision_DB` : 수정 이력 리스트
-- `Analysis_Request_Log_DB` : 처리 로그 리스트
-
-## Document Libraries
-- `Analysis_Request_Files` : 의뢰 첨부 / 수정 첨부 / 작업 참고자료
-- `Analysis_Report_Files` : 최종 해석 보고서
+**프로젝트**: 연구소 해석 의뢰 현황판  
+**플랫폼**: Microsoft 365 (무료 플랜)  
+**마지막 업데이트**: 2026-05-31
 
 ---
 
-# 1. Analysis_Request_DB
+## 데이터소스 구성
 
-## 설명
-현재 기준의 **최신 해석 의뢰 정보**를 저장하는 메인 리스트입니다.  
-현황판, 상세 조회, 승인/반려, 진행 상태 표시의 기준 데이터입니다.
+| 리스트명 | 용도 | 비고 |
+|---------|------|------|
+| Analysis_Request_DB | 메인 의뢰 데이터 | 핵심 |
+| Analysis_Request_Revision_DB | 수정 이력 (버전 스냅샷) | |
+| Analysis_Request_Log_DB | 상태 변경 로그 | 타임라인 조회용 |
+| Analysis_Report_DB | 해석 보고서 전용 | 의뢰 첨부와 분리 |
+| UserInfo_DB | 사용자 정보 | 역할 판단용 |
 
-## 컬럼 정의
+미사용 (연결만 되어있음):
+- Analysis_Request_Files (Document Library)
+- Analysis_Report_Files (Document Library)
 
-| Column Name | Type | Required | Description |
-|---|---|---|---|
-| Title | Single line text | No | 해석명(제목) |
-| RequestNo | Single line text | No | 시스템 생성 의뢰번호 (예: AR-2026-0001) |
-| RequestIDKey | Single line text | No | 시스템 생성 내부 연결 키 |
-| DepartmentName | Single line text | No | 부서명 |
-| RequesterName | Single line text | No | 의뢰자 이름 |
-| RequesterEmail | Single line text | No | 의뢰자 이메일 |
+---
+
+## 1. Analysis_Request_DB
+
+메인 의뢰 데이터 리스트.
+
+| 컬럼명 | 타입 | 필수 | 비고 |
+|-------|------|------|------|
+| Title | Single line text | No | SharePoint 기본 제공 |
+| RequestNo | Single line text | No | 의뢰번호 (예: REQ-2026-001) |
+| RequestIDKey | Single line text | No | 고유 키 (GUID 기반) |
+| Status | Choice | No | 아래 선택지 참고 |
+| RequesterName | Single line text | No | 등록자 이름 |
+| RequesterEmail | Single line text | No | 등록자 이메일 |
+| RequesterLeaderEmail | Single line text | No | 등록자 팀장 이메일 |
+| RequesterTeam | Single line text | No | 등록 시점 팀명 스냅샷 ★ 추가됨 |
+| DepartmentName | Single line text | No | 부문명 |
 | ProductName | Single line text | No | 품명 |
 | PartNo | Single line text | No | 품번 |
-| AnalysisReason | Multiple line text | No | 해석 사유 |
-| AnalysisCondition | Multiple line text | No | 해석 조건 및 검토사항 |
-| RequesterLeaderEmail | Single line text | No | 의뢰자 팀장 이메일 |
-| VAApprover1Email | Single line text | No | 가상검증 승인자 1 이메일 |
-| VAApprover2Email | Single line text | No | 가상검증 승인자 2 이메일 |
-| Status | Choice | No | 현재 상태 |
-| AssigneeEmail | Single line text | No | 담당자 이메일 |
-| ProgressPct | Number | No | 진행률(0~100) |
+| AnalysisTitle | Single line text | No | 해석 제목 |
+| AnalysisReason | Multiple lines of text | No | 해석 사유 |
+| AnalysisCondition | Multiple lines of text | No | 해석 조건 및 검토사항 |
+| SubmittedAt | Date and Time | No | 등록(제출) 일시 |
+| AssigneeEmail | Single line text | No | 담당자 이메일 (VA 승인 시 세팅) |
+| AssigneeName | Single line text | No | 담당자 이름 |
+| ProgressPct | Number | No | 진행률 0~100 |
 | ExpectedFinishDate | Date and Time | No | 예상 완료일 |
-| WorkerMemo | Multiple line text | No | 작업자 메모 |
-| LastRevisionNo | Number | No | 최신 수정 번호 |
-| LastRequesterModifiedAt | Date and Time | No | 마지막 의뢰 수정일 |
-| AssigneeLastReadRevisionNo | Number | No | 담당자가 마지막 확인한 수정 번호 |
-| HasUnreadRevision | Yes/No | No | 새 수정 도착 여부 |
-| FinalReportAttached | Yes/No | No | 최종 보고서 첨부 여부 |
-| FinalReportFilePath | Hyperlink or Single line text | No | 최종 보고서 경로 |
-| SubmittedAt | Date and Time | No | 최초 등록일 |
-| CompletedAt | Date and Time | No | 완료일 |
-| RejectedAt | Date and Time | No | 반려일 |
-| RejectReason | Multiple line text | No | 반려 사유 |
-| IsActive | Yes/No | No | 활성 여부 |
+| WorkerMemo | Multiple lines of text | No | 작업자 메모 |
+| CompletedAt | Date and Time | No | 완료 일시 |
+| RejectedAt | Date and Time | No | 반려 일시 |
+| RejectReason | Multiple lines of text | No | 반려 사유 |
+| LastRevisionNo | Number | No | 최신 수정 버전 번호 |
+| HasUnreadRevision | Yes/No | No | 담당자 미확인 수정 여부 (칸반 뱃지용) |
+| HasRequestAttachment | Yes/No | No | 의뢰 첨부파일 여부 |
+| FinalReportAttached | Yes/No | No | 보고서 첨부 여부 ★ 추가됨 |
+| 첨부 파일 | Attachments | - | SharePoint 기본 제공 (의뢰 첨부 전용) |
 
-## Status 선택값
+**Status 선택지:**
 
-- `PendingTeamLeader`
-- `PendingVAApproval`
-- `InProgress`
-- `Completed`
-- `Rejected`
-
-## 설계 원칙
-
-- SharePoint의 Required는 대부분 **No**로 유지합니다.
-- 필수 입력 검증은 **Power Apps 버튼 로직에서 수행**합니다.
-- `RequestNo`, `RequestIDKey`, `Status` 등 시스템 자동 생성/입력 컬럼은 SharePoint 필수로 두지 않습니다.
+    PendingTeamLeader   팀장 승인 대기
+    PendingVAApproval   가상검증팀 승인 대기
+    InProgress          진행중
+    Completed           완료
+    Rejected            반려
 
 ---
 
-# 2. Analysis_Request_Revision_DB
+## 2. Analysis_Request_Revision_DB
 
-## 설명
-의뢰 수정 이력을 버전별로 저장하는 리스트입니다.  
-메인 리스트에는 최신값만 남기고, 이전 버전은 이 리스트에 저장합니다.
+수정 이력 리스트. 의뢰 수정 시 버전별 스냅샷 저장.
 
-## 컬럼 정의
-
-| Column Name | Type | Required | Description |
-|---|---|---|---|
-| Title | Single line text | No | 예: AR-2026-0001 Rev.2 |
+| 컬럼명 | 타입 | 필수 | 비고 |
+|-------|------|------|------|
+| Title | Single line text | No | SharePoint 기본 제공 |
 | RequestIDKey | Single line text | No | 메인 의뢰 연결 키 |
-| RequestNo | Single line text | No | 의뢰번호 |
-| RevisionNo | Number | No | 수정 번호 |
+| RevisionNo | Number | No | 수정 버전 번호 (1, 2, 3...) |
+| RevisionComment | Multiple lines of text | No | 수정 사유 |
 | RevisedByName | Single line text | No | 수정자 이름 |
 | RevisedByEmail | Single line text | No | 수정자 이메일 |
-| RevisedAt | Date and Time | No | 수정 시각 |
-| DepartmentNameSnapshot | Single line text | No | 수정 당시 부서명 |
-| RequesterNameSnapshot | Single line text | No | 수정 당시 의뢰자 |
-| AnalysisTitleSnapshot | Single line text | No | 수정 당시 해석명 |
-| ProductNameSnapshot | Single line text | No | 수정 당시 품명 |
-| PartNoSnapshot | Single line text | No | 수정 당시 품번 |
-| AnalysisReasonSnapshot | Multiple line text | No | 수정 당시 해석 사유 |
-| AnalysisConditionSnapshot | Multiple line text | No | 수정 당시 해석 조건 및 검토사항 |
-| FileFolderPath | Hyperlink or Single line text | No | 해당 수정본 첨부 폴더 경로 |
-| RevisionComment | Multiple line text | No | 수정 메모 |
+| RevisedAt | Date and Time | No | 수정 일시 |
+| ProductNameSnapshot | Single line text | No | 수정 시점 품명 스냅샷 |
+| PartNoSnapshot | Single line text | No | 수정 시점 품번 스냅샷 |
+| AnalysisTitleSnapshot | Single line text | No | 수정 시점 해석제목 스냅샷 |
+| 첨부 파일 | Attachments | - | SharePoint 기본 제공 |
 
 ---
 
-# 3. Analysis_Request_Log_DB
+## 3. Analysis_Request_Log_DB
 
-## 설명
-의뢰 처리 이력을 저장하는 로그 리스트입니다.  
-등록, 수정, 승인, 반려, 담당자 배정, 완료 등의 시스템/사용자 행동을 기록합니다.
+상태 변경 로그 리스트. 처리 현황 타임라인 날짜 조회용.
 
-## 컬럼 정의
+| 컬럼명 | 타입 | 필수 | 비고 |
+|-------|------|------|------|
+| Title | Single line text | No | SharePoint 기본 제공 |
+| RequestIDKey | Single line text | No | 메인 의뢰 연결 키 |
+| LogType | Choice | No | 아래 선택지 참고 |
+| ActionAt | Date and Time | No | 처리 일시 |
+| ActorEmail | Single line text | No | 처리자 이메일 |
+| ActorName | Single line text | No | 처리자 이름 |
+| Memo | Multiple lines of text | No | 비고 |
 
-| Column Name | Type | Required | Description |
-|---|---|---|---|
-| Title | Single line text | No | 로그 제목 |
+**LogType 선택지:**
+
+    Submit              등록
+    TeamLeaderApprove   팀장 승인
+    TeamLeaderReject    팀장 반려
+    VAApprove           VA 승인
+    VAReject            VA 반려
+    Complete            작업 완료
+
+**조회 패턴 (타임라인용):**
+
+    LookUp(
+        Analysis_Request_Log_DB,
+        RequestIDKey = varSelectedRequest.RequestIDKey &&
+        LogType.Value = "TeamLeaderApprove"
+    ).ActionAt
+
+---
+
+## 4. Analysis_Report_DB ★ 신규 생성
+
+해석 보고서 전용 리스트. Analysis_Request_DB 기본 첨부파일과 분리.
+
+> **분리 배경**: SharePoint List는 첨부파일 컬럼이 1개뿐이라 의뢰 첨부와 보고서 첨부를 같은 공간에서 분리할 수 없음. 별도 List 생성으로 해결.
+
+| 컬럼명 | 타입 | 필수 | 비고 |
+|-------|------|------|------|
+| Title | Single line text | No | "{RequestNo}_보고서" |
 | RequestIDKey | Single line text | No | 메인 의뢰 연결 키 |
 | RequestNo | Single line text | No | 의뢰번호 |
-| LogType | Choice | No | 로그 유형 |
-| LogMessage | Multiple line text | No | 화면 표시용 메시지 |
-| ActionByName | Single line text | No | 수행자 이름 |
-| ActionByEmail | Single line text | No | 수행자 이메일 |
-| ActionRole | Single line text | No | 수행 역할 |
-| ActionAt | Date and Time | No | 수행 시각 |
-| RelatedRevisionNo | Number | No | 연관 수정 번호 |
+| UploadedByName | Single line text | No | 업로드자 이름 |
+| UploadedByEmail | Single line text | No | 업로드자 이메일 |
+| UploadedAt | Date and Time | No | 업로드 일시 |
+| 첨부 파일 | Attachments | - | SharePoint 기본 제공 (보고서 전용) |
 
-## LogType 선택값
+**연동 방식:**
 
-- `Submit`
-- `Modify`
-- `TeamLeaderApprove`
-- `TeamLeaderReject`
-- `VAApprove`
-- `VAReject`
-- `Assign`
-- `ProgressUpdate`
-- `Complete`
-- `FinalReportUpload`
+    // 해당 의뢰의 보고서 레코드 조회
+    LookUp(
+        Analysis_Report_DB,
+        RequestIDKey = varSelectedRequest.RequestIDKey
+    )
 
-## Power Apps Patch 주의사항
+    // 보고서 첨부파일 조회 (DataCardValue1.Items)
+    LookUp(
+        Analysis_Report_DB,
+        RequestIDKey = varSelectedRequest.RequestIDKey
+    ).'첨부 파일'
 
-`Status`, `LogType`은 SharePoint **Choice 컬럼**이므로 Patch 시 문자열이 아니라 아래 형식으로 넣어야 합니다.
+**주의사항:**
 
-```powerfx
-Status: { Value: "PendingTeamLeader" }
-LogType: { Value: "Submit" }
+- Document Library가 아닌 일반 **List**로 생성해야 PowerApps Form과 연동 가능
+- FinalReportAttached 컬럼(Analysis_Request_DB)은 이 List의 첨부파일 수 기준으로 동기화
+
+---
+
+## 5. UserInfo_DB
+
+사용자 정보 리스트. 앱 시작 시 현재 사용자 정보 조회용.
+
+| 컬럼명 | 타입 | 필수 | 비고 |
+|-------|------|------|------|
+| Title | Single line text | No | SharePoint 기본 제공 |
+| 이름_한글 | Single line text | No | 한글 이름 |
+| e-mail | Single line text | No | 이메일 (소문자로 저장 권장) |
+| 부문 | Single line text | No | 부문명 |
+| 팀 | Single line text | No | 팀명 |
+| 직급2 | Single line text | No | 직급 (팀장, 소장, 이사 등) |
+| IsVAApprover | Yes/No | No | VA 승인자 여부 ★ 개선 예정 |
+
+**역할 판단 로직 (앱 OnStart):**
+
+    // 현재 사용자 정보 조회
+    Set(
+        varUserRecord,
+        LookUp(UserInfo_DB, Lower('e-mail') = Lower(User().Email))
+    );
+    Set(varMyName,      varUserRecord.이름_한글);
+    Set(varMyEmail,     Lower(User().Email));
+    Set(varMyDept,      varUserRecord.부문);
+    Set(varMyTeam,      varUserRecord.팀);
+    Set(varMyJobGrade,  varUserRecord.직급2);
+    Set(varIsTeamLeader, varMyJobGrade in ["팀장", "소장", "이사"]);
+
+    // VA 승인자 판단 (현재 이메일 하드코딩 — 추후 IsVAApprover 컬럼으로 개선 예정)
+    Set(
+        varIsVAApprover,
+        varMyEmail in [
+            Lower("donggyu.lee@tym.world"),
+            Lower("E2603003@tym.world")
+        ]
+    );
+
+---
+
+## 리스트 간 연결 구조
+
+    Analysis_Request_DB (RequestIDKey)
+        ├── Analysis_Request_Revision_DB (RequestIDKey)
+        ├── Analysis_Request_Log_DB (RequestIDKey)
+        └── Analysis_Report_DB (RequestIDKey)
+
+    UserInfo_DB (e-mail)
+        └── Analysis_Request_DB 의 RequesterEmail, AssigneeEmail과 대조
+
+---
+
+## 개선 예정 사항
+
+1. **VA 승인자 관리**: 현재 이메일 2개 하드코딩 → UserInfo_DB.IsVAApprover 컬럼으로 동적 관리
+2. **Document Library 활용 여부**: Analysis_Request_Files, Analysis_Report_Files 현재 미사용. 추후 검토.
+
+---
+
+## 알려진 제약 및 주의사항
+
+- SharePoint List는 첨부파일 컬럼이 기본 1개뿐 → 용도별 분리 시 별도 List 필요
+- Document Library는 PowerApps Form의 Attachments 컨트롤과 직접 연동 불가
+- Analysis_Report_DB는 반드시 **일반 List**로 생성 (Document Library 아님)
+- Delegation 주의: Filter + Choice 필드 조합은 delegation 가능하나 복잡한 중첩 조건 시 주의
+- LookUp으로 타임라인 날짜 조회 시 LogType.Value (Choice 컬럼) 사용 → delegation 가능
