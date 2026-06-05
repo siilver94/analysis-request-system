@@ -928,6 +928,7 @@ Screens:
                               Text: |-
                                 ="진행률: " & Text(Coalesce(ThisItem.ProgressPct, 0), "0") & "%"
                               VerticalAlignment: =VerticalAlign.Top
+                              Visible: =false
                               Width: =70
                               X: =237
                         - lblExpectedFinish_InProgress:
@@ -1740,7 +1741,7 @@ Screens:
                           !varIsTeamLeader  // ← 결재 권한자면 숨김
                         Width: =941
                         X: =10
-                        Y: =565
+                        Y: =585
                       Children:
                         - Text1_38:
                             Control: ModernText@1.0.0
@@ -2235,6 +2236,7 @@ Screens:
                           Lower(varSelectedRequest.AssigneeEmail) = Lower(varMyEmail)
 
 
+
                         Width: =615
                         X: =10
                         Y: =544
@@ -2276,7 +2278,7 @@ Screens:
                               Width: =277
                               X: =104
                               Y: =7
-                        - btnSaveWorkProgress:
+                        - ActionByName:
                             Control: Button@0.0.45
                             Properties:
                               Appearance: ='ButtonCanvas.Appearance'.Secondary
@@ -2285,27 +2287,27 @@ Screens:
                               BorderThickness: =1
                               Height: =28
                               OnSelect: |-
-                                =Patch(
+                                =// 진행 정보 저장
+                                Patch(
                                     Analysis_Request_DB,
                                     varSelectedRequest,
                                     {
-                                        ProgressPct: Round(sldProgressPct.Value, 0),
                                         ExpectedFinishDate: dpExpectedFinishDate.SelectedDate,
-                                        WorkerMemo: Trim(txtWorkerMemo.Text),
-                                        HasUnreadRevision: false,
-                                        AssigneeLastReadRevisionNo: Coalesce(varSelectedRequest.LastRevisionNo, 0)
+                                        WorkerMemo: txtWorkerMemo.Text,
+                                        ProgressPct: sldProgressPct.Value
                                     }
                                 );
 
+                                // 로그 기록
                                 Patch(
                                     Analysis_Request_Log_DB,
                                     Defaults(Analysis_Request_Log_DB),
                                     {
-                                        Title: "ProgressUpdate",
+                                        Title: "WorkProgressSaved",
                                         RequestIDKey: varSelectedRequest.RequestIDKey,
                                         RequestNo: varSelectedRequest.RequestNo,
-                                        LogType: { Value: "ProgressUpdate" },
-                                        LogMessage: varMyName & "님이 진행정보를 업데이트했습니다. 진행률: " & Text(Round(sldProgressPct.Value, 0), "0") & "%",
+                                        LogType: { Value: "WorkProgressSaved" },
+                                        LogMessage: varMyName & "님이 진행 정보를 업데이트했습니다.",
                                         ActionByName: varMyName,
                                         ActionByEmail: varMyEmail,
                                         ActionRole: "Assignee",
@@ -2314,8 +2316,32 @@ Screens:
                                     }
                                 );
 
+                                // 의뢰자에게 업데이트 알림 메일
+                                If(
+                                    !IsBlank(varSelectedRequest.RequesterEmail),
+                                    Office365Outlook.SendEmailV2(
+                                        varSelectedRequest.RequesterEmail,
+                                        "[해석의뢰] 진행 정보 업데이트 - " & varSelectedRequest.RequestNo,
+                                        Concatenate(
+                                            "<div style='font-family:Segoe UI;'>",
+                                            "<h3>진행 정보 업데이트</h3>",
+                                            "<p>담당자가 해석 의뢰 진행 정보를 업데이트했습니다.</p>",
+                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
+                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
+                                            "<p><b>담당자:</b> ", varMyName, "</p>",
+                                            "<p><b>예상 완료일:</b> ", Text(dpExpectedFinishDate.SelectedDate, "yyyy년 mm월 dd일"), "</p>",
+                                            "<p><b>작업 메모:</b> ", txtWorkerMemo.Text, "</p>",
+                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
+                                            "</div>"
+                                        ),
+                                        {
+                                            IsHtml: true,
+                                            Importance: "Normal"
+                                        }
+                                    )
+                                );
+
                                 Refresh(Analysis_Request_DB);
-                                Refresh(Analysis_Request_Log_DB);
 
                                 Set(
                                     varSelectedRequest,
@@ -2327,7 +2353,7 @@ Screens:
                               Text: ="진행 저장"
                               Width: =95
                               X: =499
-                              Y: =7
+                              Y: =52
                         - sldProgressPct:
                             Control: FluentV8/Slider@1.6.8
                             Properties:
@@ -2337,6 +2363,7 @@ Screens:
                               Step: =5
                               ThumbSize: =15
                               Value: =Coalesce(varSelectedRequest.ProgressPct, 0)
+                              Visible: =false
                               Width: =188
                               X: =112
                               Y: =53
@@ -2345,10 +2372,11 @@ Screens:
                             Properties:
                               DefaultDate: =varSelectedRequest.ExpectedFinishDate
                               Font: =Font.Verdana
+                              Placeholder: ="Select a date"
                               Size: =12
                               Width: =190
-                              X: =405
-                              Y: =52
+                              X: =118
+                              Y: =49
                         - lblProgressPct:
                             Control: ModernText@1.0.0
                             Properties:
@@ -2356,6 +2384,7 @@ Screens:
                               Font: =Font.Verdana
                               Size: =10
                               Text: '="("& Text(Round(sldProgressPct.Value, 0), "0") & "%)" '
+                              Visible: =false
                               Width: =50
                               X: =58
                               Y: =53
@@ -2366,6 +2395,7 @@ Screens:
                               Font: =Font.Verdana
                               Size: =11
                               Text: ="진행률"
+                              Visible: =false
                               Width: =50
                               X: =25
                               Y: =52
@@ -2379,8 +2409,8 @@ Screens:
                                 ="예상완료일
                                 "
                               Width: =77
-                              X: =337
-                              Y: =52
+                              X: =24
+                              Y: =51
                         - Rectangle2_16:
                             Control: Rectangle@2.3.0
                             Properties:
@@ -2390,12 +2420,12 @@ Screens:
                               DisabledFill: =RGBA(0, 0, 0, 0)
                               Fill: =RGBA(214, 221, 224, 1)
                               FocusedBorderColor: =RGBA(98, 100, 167, 1)
-                              Height: =75
+                              Height: =80
                               HoverFill: =RGBA(0, 0, 0, 0)
                               PressedFill: =RGBA(0, 0, 0, 0)
                               Width: =1
                               X: =106
-                              Y: =62
+                              Y: =54
                         - lblProgressLabel1_2:
                             Control: ModernText@1.0.0
                             Properties:
@@ -2408,21 +2438,6 @@ Screens:
                               Width: =77
                               X: =25
                               Y: =86
-                        - Rectangle2_17:
-                            Control: Rectangle@2.3.0
-                            Properties:
-                              BorderColor: =RGBA(243, 242, 241, 1)
-                              BorderStyle: =BorderStyle.None
-                              BorderThickness: =2
-                              DisabledFill: =RGBA(0, 0, 0, 0)
-                              Fill: =RGBA(214, 221, 224, 1)
-                              FocusedBorderColor: =RGBA(98, 100, 167, 1)
-                              Height: =30
-                              HoverFill: =RGBA(0, 0, 0, 0)
-                              PressedFill: =RGBA(0, 0, 0, 0)
-                              Width: =1
-                              X: =321
-                              Y: =53
                         - txtWorkerMemo:
                             Control: ModernTextInput@1.1.0
                             Properties:
@@ -3177,10 +3192,20 @@ Screens:
                           If(
                               varSavedRequestMode = "New",
 
-                              Set(
-                                  varNewRequestNo,
-                                  "AR-" & Text(Year(Now())) & "-" & Text(Self.LastSubmit.ID, "0000")
-                              );
+                          Set(
+                              varNewRequestNo,
+                              "CAE" &
+                              Text(Year(Now()) - 2000, "00") &
+                              Text(
+                                  CountRows(
+                                      Filter(
+                                          Analysis_Request_DB,
+                                          Year(SubmittedAt) = Year(Now())
+                                      )
+                                  ) + 21,
+                                  "000"
+                              )
+                          );
 
                               Set(
                                   varNewRequestIDKey,
@@ -4045,6 +4070,138 @@ Screens:
                         Wrap: =false
                         X: =99
                         Y: =555
+                  - frmRevisionAttach:
+                      Control: Form@2.4.4
+                      Layout: Vertical
+                      Properties:
+                        BorderColor: =RGBA(243, 242, 241, 1)
+                        DataSource: =Analysis_Request_Revision_DB
+                        DefaultMode: =FormMode.New
+                        Height: =87
+                        Item: =Blank()
+                        Visible: =false
+                        Width: =214
+                        Y: =381
+                      Children:
+                        - 첨부 파일_DataCard4:
+                            Control: TypedDataCard@1.0.7
+                            Variant: ClassicAttachmentsEdit
+                            IsLocked: true
+                            Properties:
+                              BorderColor: =RGBA(243, 242, 241, 1)
+                              DataField: ="{Attachments}"
+                              Default: =ThisItem.'첨부 파일'
+                              DisplayName: =DataSourceInfo([@Analysis_Request_Revision_DB],DataSourceInfo.DisplayName,'{Attachments}')
+                              Required: =false
+                              Update: =DataCardValueRev.Attachments
+                              Width: =71
+                              X: =0
+                              Y: =0
+                            Children:
+                              - DataCardKey10:
+                                  Control: Label@2.5.1
+                                  MetadataKey: FieldName
+                                  Properties:
+                                    AutoHeight: =true
+                                    BorderColor: =RGBA(0, 0, 0, 0)
+                                    BorderStyle: =BorderStyle.None
+                                    BorderThickness: =2
+                                    Color: =RGBA(37, 36, 35, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(200, 198, 196, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =34
+                                    PaddingLeft: =0
+                                    Size: =10.5
+                                    Text: =Parent.DisplayName
+                                    Width: =Parent.Width - 60
+                                    Wrap: =false
+                                    X: =30
+                                    Y: =10
+                              - DataCardValueRev:
+                                  Control: Attachments@2.3.0
+                                  MetadataKey: FieldValue
+                                  Properties:
+                                    BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                                    BorderStyle: =BorderStyle.None
+                                    Color: =RGBA(37, 36, 35, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(200, 198, 196, 1)
+                                    DisabledFill: =RGBA(243, 242, 241, 1)
+                                    DisplayMode: =Parent.DisplayMode
+                                    Fill: =RGBA(243, 242, 241, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    HoverColor: =RGBA(37, 36, 35, 1)
+                                    HoverFill: =RGBA(243, 242, 241, 1)
+                                    ItemColor: =RGBA(0, 0, 0, 1)
+                                    ItemFill: =RGBA(237, 235, 233, 1)
+                                    ItemHoverColor: =RGBA(37, 36, 35, 1)
+                                    ItemHoverFill: =RGBA(243, 242, 241, 1)
+                                    ItemSpacing: =12
+                                    Items: =Parent.Default
+                                    NoAttachmentsColor: =RGBA(200, 198, 196, 1)
+                                    PaddingBottom: =5
+                                    PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
+                                    PaddingRight: =5
+                                    PaddingTop: =5
+                                    PressedColor: =RGBA(255, 255, 255, 1)
+                                    PressedFill: =RGBA(237, 235, 233, 1)
+                                    Size: =10.5
+                                    Tooltip: =Parent.DisplayName
+                                    Width: =Parent.Width - 60
+                                    X: =30
+                                    Y: =DataCardKey10.Y + DataCardKey10.Height + 5
+                              - ErrorMessage9:
+                                  Control: Label@2.5.1
+                                  MetadataKey: ErrorMessage
+                                  Properties:
+                                    AutoHeight: =true
+                                    BorderColor: =RGBA(0, 0, 0, 0)
+                                    BorderStyle: =BorderStyle.None
+                                    BorderThickness: =2
+                                    Color: =RGBA(168, 0, 0, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(168, 0, 0, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =10
+                                    Live: =Live.Assertive
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =10.5
+                                    Text: =Parent.Error
+                                    Visible: =Parent.DisplayMode=DisplayMode.Edit
+                                    Width: =Parent.Width - 60
+                                    X: =30
+                                    Y: =DataCardValueRev.Y + DataCardValueRev.Height
+                              - StarVisible9:
+                                  Control: Label@2.5.1
+                                  MetadataKey: FieldRequired
+                                  Properties:
+                                    Align: =Align.Center
+                                    BorderColor: =RGBA(0, 0, 0, 0)
+                                    BorderStyle: =BorderStyle.None
+                                    BorderThickness: =2
+                                    Color: =RGBA(37, 36, 35, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(200, 198, 196, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =DataCardKey10.Height
+                                    PaddingLeft: =0
+                                    Size: =10.5
+                                    Text: ="*"
+                                    Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                                    Width: =30
+                                    Wrap: =false
+                                    Y: =DataCardKey10.Y
             - Container2:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -4106,7 +4263,7 @@ Screens:
                         Size: =18
                         Text: =varSelectedRequest.제목
                         Width: =900
-                        X: =8
+                        X: =12
                         Y: =6
                   - Exit:
                       Control: Classic/Icon@2.5.0
@@ -4236,7 +4393,7 @@ Screens:
                         TemplateSize: =40
                         Width: =310
                         X: =7
-                        Y: =368
+                        Y: =356
                       Children:
                         - Rectangle2_14:
                             Control: Rectangle@2.3.0
@@ -4581,7 +4738,7 @@ Screens:
                         BorderColor: =RGBA(226, 232, 240, 1)
                         BorderThickness: =1
                         Fill: =RGBA(255, 255, 255, 1)
-                        Height: =165
+                        Height: =147
                         Width: =315
                         X: =7
                         Y: =164
@@ -4648,6 +4805,7 @@ Screens:
                               Font: =Font.Verdana
                               Size: =11
                               Text: =Text(Coalesce(varSelectedRequest.ProgressPct, 0), "0") & "%"
+                              Visible: =false
                               Width: =60
                               X: =106
                               Y: =65
@@ -4659,6 +4817,7 @@ Screens:
                               Font: =Font.Verdana
                               Size: =11
                               Text: ="진행률"
+                              Visible: =false
                               Width: =60
                               X: =16
                               Y: =65
@@ -4672,7 +4831,7 @@ Screens:
                               Text: ="예상 완료일"
                               Width: =87
                               X: =16
-                              Y: =93
+                              Y: =69
                         - lblExpectedValue:
                             Control: ModernText@1.0.0
                             Properties:
@@ -4682,7 +4841,7 @@ Screens:
                               Text: "=If(\r\n          IsBlank(varSelectedRequest.ExpectedFinishDate),\r\n          \"-\",\r\n          Text(varSelectedRequest.ExpectedFinishDate, \"yyyy.mm.dd\")\r\n      )\r\n      "
                               Width: =104
                               X: =106
-                              Y: =93
+                              Y: =69
                         - lblExpectedLabel_1:
                             Control: ModernText@1.0.0
                             Properties:
@@ -4693,19 +4852,19 @@ Screens:
                               Text: ="작업 메모"
                               Width: =87
                               X: =16
-                              Y: =122
+                              Y: =98
                         - lblExpectedValue_1:
                             Control: ModernText@1.0.0
                             Properties:
                               Color: =RGBA(52, 64, 84, 1)
                               Font: =Font.Verdana
-                              Height: =39
+                              Height: =43
                               Size: =11
                               Text: =Coalesce(varSelectedRequest.WorkerMemo, "-")
                               VerticalAlign: =VerticalAlign.Top
                               Width: =205
                               X: =106
-                              Y: =125
+                              Y: =101
                   - conRevDetail:
                       Control: GroupContainer@1.5.0
                       Variant: ManualLayout
@@ -4713,11 +4872,11 @@ Screens:
                         BorderColor: =RGBA(226, 232, 240, 1)
                         BorderThickness: =1
                         Fill: =RGBA(248, 250, 252, 1)
-                        Height: =162
+                        Height: =183
                         Visible: =!IsBlank(varSelectedRevision)
                         Width: =310
                         X: =10
-                        Y: =503
+                        Y: =482
                       Children:
                         - lblDetailRevNo:
                             Control: ModernText@1.0.0
@@ -4754,7 +4913,7 @@ Screens:
                               Text: ="수정 사유"
                               Width: =60
                               X: =16
-                              Y: =116
+                              Y: =136
                         - lblDetailComment:
                             Control: ModernText@1.0.0
                             Properties:
@@ -4767,7 +4926,7 @@ Screens:
                               VerticalAlign: =VerticalAlign.Top
                               Width: =270
                               X: =16
-                              Y: =136
+                              Y: =156
                         - lblDetailProductLabel:
                             Control: ModernText@1.0.0
                             Properties:
@@ -4777,12 +4936,13 @@ Screens:
                               Text: ="품명 / 품번"
                               Width: =70
                               X: =16
-                              Y: =66
+                              Y: =70
                         - lblDetailProduct:
                             Control: ModernText@1.0.0
                             Properties:
                               Color: =RGBA(52, 64, 84, 1)
                               Font: =Font.Verdana
+                              Height: =49
                               Size: =10
                               Text: |-
                                 =Coalesce(varSelectedRevision.ProductNameSnapshot, "-") &
@@ -4825,7 +4985,7 @@ Screens:
                         VerticalAlign: =VerticalAlign.Bottom
                         Width: =93
                         X: =24
-                        Y: =338
+                        Y: =322
       - conNotice:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
