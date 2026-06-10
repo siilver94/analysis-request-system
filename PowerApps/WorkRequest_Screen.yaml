@@ -59,6 +59,12 @@ Screens:
             ]
         );
 
+        // 관리자 판단 (개발자 전용 — 전체 목록 조회)
+        Set(
+            varIsAdmin,
+            varMyEmail in [Lower("eunseong.kim@tym.world")]
+        );
+
         // =============================
         // [3] 가상검증 승인자 고정값
         // 이름은 저장하지 않고 이메일만 사용
@@ -336,6 +342,8 @@ Screens:
                                       (varIncludeRejected && Status.Value = "Rejected")
                                   ),
 
+                                  // 관리자는 전체, 그 외는 관련자만
+                                  varIsAdmin ||
                                   Lower(RequesterEmail) = Lower(varMyEmail) ||
                                   Lower(AssigneeEmail) = Lower(varMyEmail) ||
                                   Lower(RequesterLeaderEmail) = Lower(varMyEmail) ||
@@ -502,7 +510,16 @@ Screens:
                               Height: =82
                               HoverFill: =RGBA(248, 250, 252, 0.3)
                               OnSelect: |-
-                                =// varReportRecord 먼저 초기화
+                                =Set(
+                                    varLatestRevision,
+                                    LookUp(
+                                        Analysis_Request_Revision_DB,
+                                        RequestIDKey = ThisItem.RequestIDKey &&
+                                        RevisionNo = ThisItem.LastRevisionNo
+                                    )
+                                );
+
+                                // varReportRecord 먼저 초기화
                                 Set(varReportRecord, Blank());
 
                                 Set(varSelectedRequest, ThisItem);
@@ -718,7 +735,8 @@ Screens:
                         FocusedBorderThickness: =2
                         Items: |-
                           =If(
-                              varIsVAApprover,
+                              // 관리자: 전체 조회
+                              varIsAdmin,
                               SortByColumns(
                                   Filter(
                                       Analysis_Request_DB,
@@ -734,21 +752,63 @@ Screens:
                                   SortOrder.Descending
                               ),
 
-                              SortByColumns(
-                                  Filter(
-                                      Analysis_Request_DB,
-                                      SubmittedAt >= varDateFrom,
-                                      SubmittedAt < varDateTo,
-                                      Status.Value = "InProgress",
-                                      Lower(RequesterEmail) = Lower(varMyEmail) ||
-                                      Lower(AssigneeEmail) = Lower(varMyEmail),
-                                      IsBlank(txtSearch.Text) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                      !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                              // 가상검증 승인자: 전체 InProgress 조회
+                              If(
+                                  varIsVAApprover,
+                                  SortByColumns(
+                                      Filter(
+                                          Analysis_Request_DB,
+                                          SubmittedAt >= varDateFrom,
+                                          SubmittedAt < varDateTo,
+                                          Status.Value = "InProgress",
+                                          IsBlank(txtSearch.Text) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                                      ),
+                                      "SubmittedAt",
+                                      SortOrder.Descending
                                   ),
-                                  "SubmittedAt",
-                                  SortOrder.Descending
+
+                                  // 팀장: 본인 요청 + 본인 담당 + 팀원 진행 건
+                                  If(
+                                      varIsTeamLeader,
+                                      SortByColumns(
+                                          Filter(
+                                              Analysis_Request_DB,
+                                              SubmittedAt >= varDateFrom,
+                                              SubmittedAt < varDateTo,
+                                              Status.Value = "InProgress",
+                                              Lower(RequesterEmail) = Lower(varMyEmail) ||
+                                              Lower(AssigneeEmail) = Lower(varMyEmail) ||
+                                              Lower(RequesterLeaderEmail) = Lower(varMyEmail),
+                                              IsBlank(txtSearch.Text) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                                          ),
+                                          "SubmittedAt",
+                                          SortOrder.Descending
+                                      ),
+
+                                      // 일반 사용자: 본인 요청 + 본인 담당만
+                                      SortByColumns(
+                                          Filter(
+                                              Analysis_Request_DB,
+                                              SubmittedAt >= varDateFrom,
+                                              SubmittedAt < varDateTo,
+                                              Status.Value = "InProgress",
+                                              Lower(RequesterEmail) = Lower(varMyEmail) ||
+                                              Lower(AssigneeEmail) = Lower(varMyEmail),
+                                              IsBlank(txtSearch.Text) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                                          ),
+                                          "SubmittedAt",
+                                          SortOrder.Descending
+                                      )
+                                  )
                               )
                           )
                         TemplateSize: =86
@@ -958,7 +1018,16 @@ Screens:
                               Height: =86
                               HoverFill: =RGBA(248, 250, 252, 0.3)
                               OnSelect: |-
-                                =// varReportRecord 먼저 초기화
+                                =Set(
+                                    varLatestRevision,
+                                    LookUp(
+                                        Analysis_Request_Revision_DB,
+                                        RequestIDKey = ThisItem.RequestIDKey &&
+                                        RevisionNo = ThisItem.LastRevisionNo
+                                    )
+                                );
+
+                                // varReportRecord 먼저 초기화
                                 Set(varReportRecord, Blank());
 
                                 Set(varSelectedRequest, ThisItem);
@@ -1066,14 +1135,14 @@ Screens:
                         FocusedBorderThickness: =2
                         Items: |-
                           =If(
-                              varIsVAApprover,
-                              // 가상검증 승인자: 가상검증 승인대기 건만
+                              // 관리자: 전체 조회
+                              varIsAdmin,
                               SortByColumns(
                                   Filter(
                                       Analysis_Request_DB,
                                       SubmittedAt >= varDateFrom,
                                       SubmittedAt < varDateTo,
-                                      Status.Value = "PendingVAApproval",
+                                      Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
                                       IsBlank(txtSearch.Text) ||
                                       !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
                                       !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
@@ -1083,20 +1152,15 @@ Screens:
                                   SortOrder.Descending
                               ),
 
+                              // 가상검증 승인자: 가상검증 승인대기 건만
                               If(
-                                  varIsTeamLeader,
-                                  // 팀장: 본인 요청 + 본인이 승인해야 하는 팀장 승인대기 건
+                                  varIsVAApprover,
                                   SortByColumns(
                                       Filter(
                                           Analysis_Request_DB,
                                           SubmittedAt >= varDateFrom,
                                           SubmittedAt < varDateTo,
-                                          Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
-                                          Lower(RequesterEmail) = Lower(varMyEmail) ||
-                                          (
-                                              Lower(RequesterLeaderEmail) = Lower(varMyEmail) &&
-                                              Status.Value = "PendingTeamLeader"
-                                          ),
+                                          Status.Value = "PendingVAApproval",
                                           IsBlank(txtSearch.Text) ||
                                           !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
                                           !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
@@ -1106,21 +1170,45 @@ Screens:
                                       SortOrder.Descending
                                   ),
 
-                                  // 일반 사용자: 본인 요청 중 시작전 상태만
-                                  SortByColumns(
-                                      Filter(
-                                          Analysis_Request_DB,
-                                          SubmittedAt >= varDateFrom,
-                                          SubmittedAt < varDateTo,
-                                          Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
-                                          Lower(RequesterEmail) = Lower(varMyEmail),
-                                          IsBlank(txtSearch.Text) ||
-                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                                  // 팀장: 본인 요청 + 팀원 승인대기 건
+                                  If(
+                                      varIsTeamLeader,
+                                      SortByColumns(
+                                          Filter(
+                                              Analysis_Request_DB,
+                                              SubmittedAt >= varDateFrom,
+                                              SubmittedAt < varDateTo,
+                                              Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
+                                              Lower(RequesterEmail) = Lower(varMyEmail) ||
+                                              (
+                                                  Lower(RequesterLeaderEmail) = Lower(varMyEmail) &&
+                                                  Status.Value = "PendingTeamLeader"
+                                              ),
+                                              IsBlank(txtSearch.Text) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                                          ),
+                                          "SubmittedAt",
+                                          SortOrder.Descending
                                       ),
-                                      "SubmittedAt",
-                                      SortOrder.Descending
+
+                                      // 일반 사용자: 본인 요청만
+                                      SortByColumns(
+                                          Filter(
+                                              Analysis_Request_DB,
+                                              SubmittedAt >= varDateFrom,
+                                              SubmittedAt < varDateTo,
+                                              Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
+                                              Lower(RequesterEmail) = Lower(varMyEmail),
+                                              IsBlank(txtSearch.Text) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
+                                          ),
+                                          "SubmittedAt",
+                                          SortOrder.Descending
+                                      )
                                   )
                               )
                           )
@@ -1239,7 +1327,16 @@ Screens:
                               Height: =88
                               HoverFill: =RGBA(248, 250, 252, 0.3)
                               OnSelect: |-
-                                =// varReportRecord 먼저 초기화
+                                =Set(
+                                    varLatestRevision,
+                                    LookUp(
+                                        Analysis_Request_Revision_DB,
+                                        RequestIDKey = ThisItem.RequestIDKey &&
+                                        RevisionNo = ThisItem.LastRevisionNo
+                                    )
+                                );
+
+                                // varReportRecord 먼저 초기화
                                 Set(varReportRecord, Blank());
 
                                 Set(varSelectedRequest, ThisItem);
@@ -1867,9 +1964,9 @@ Screens:
                             Layout: Vertical
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
-                              DataSource: =Analysis_Request_DB
+                              DataSource: =Analysis_Request_Revision_DB
                               Height: =63
-                              Item: =varSelectedRequest
+                              Item: =varLatestRevision
                               NumberOfColumns: =1
                               Width: =891
                               X: =28
@@ -1882,7 +1979,7 @@ Screens:
                                     BorderColor: =RGBA(243, 242, 241, 1)
                                     DataField: ="{Attachments}"
                                     Default: =ThisItem.'첨부 파일'
-                                    DisplayName: =DataSourceInfo([@Analysis_Request_DB],DataSourceInfo.DisplayName,'첨부 파일')
+                                    DisplayName: =DataSourceInfo([@Analysis_Request_Revision_DB], DataSourceInfo.DisplayName, '첨부 파일')
                                     Height: =62
                                     Required: =false
                                     Update: =DataCardValue3.Attachments
@@ -2234,6 +2331,7 @@ Screens:
                         Visible: |+
                           =varSelectedRequest.Status.Value = "InProgress" &&
                           Lower(varSelectedRequest.AssigneeEmail) = Lower(varMyEmail)
+
 
 
 
@@ -2739,6 +2837,7 @@ Screens:
                           =varSelectedRequest.Status.Value = "InProgress" &&
                           Lower(varSelectedRequest.AssigneeEmail) = Lower(varMyEmail)
 
+
                         Width: =315
                         X: =637
                         Y: =544
@@ -3180,196 +3279,7 @@ Screens:
                         DataSource: =Analysis_Request_DB
                         Height: =590
                         Item: =varSelectedRequest
-                        OnSuccess: |-
-                          =// =============================
-                          // 현재 저장 모드 백업
-                          // =============================
-                          Set(varSavedRequestMode, varRequestMode);
-
-                          // =============================
-                          // 신규 등록 후 시스템 컬럼 자동 세팅
-                          // =============================
-                          If(
-                              varSavedRequestMode = "New",
-
-                          Set(
-                              varNewRequestNo,
-                              "CAE" &
-                              Text(Year(Now()) - 2000, "00") &
-                              Text(
-                                  CountRows(
-                                      Filter(
-                                          Analysis_Request_DB,
-                                          Year(SubmittedAt) = Year(Now())
-                                      )
-                                  ) + 21,
-                                  "000"
-                              )
-                          );
-
-                              Set(
-                                  varNewRequestIDKey,
-                                  Text(GUID())
-                              );
-
-                              Set(
-                                  varRequesterLeaderInfo,
-                                  LookUp(
-                                      UserInfo_DB,
-                                      팀 = varMyTeam &&
-                                      직급2 = "팀장"
-                                  )
-                              );
-
-                              Patch(
-                                  Analysis_Request_DB,
-                                  Self.LastSubmit,
-                                  {
-                                      RequestNo: varNewRequestNo,
-                                      RequestIDKey: varNewRequestIDKey,
-                                      DepartmentName: varMyDept,
-                                      RequesterTeam: varMyTeam, 
-                                      RequesterName: varMyName,
-                                      RequesterEmail: varMyEmail,
-                                      RequesterLeaderEmail: Coalesce(varRequesterLeaderInfo.'e-mail', ""),
-                                      VAApprover1Email: varVAApprover1Email,
-                                      VAApprover2Email: varVAApprover2Email,
-                                      Status: { Value: "PendingTeamLeader" },
-                                      AssigneeEmail: Blank(),
-                                      ProgressPct: 0,
-                                      LastRevisionNo: 0,
-                                      AssigneeLastReadRevisionNo: 0,
-                                      HasUnreadRevision: false,
-                                      FinalReportAttached: false,
-                                      SubmittedAt: Now(),
-                                      LastRequesterModifiedAt: Now(),
-                                      IsActive: true
-                                  }
-                              );
-
-                              Patch(
-                                  Analysis_Request_Log_DB,
-                                  Defaults(Analysis_Request_Log_DB),
-                                  {
-                                      Title: "Submit",
-                                      RequestIDKey: varNewRequestIDKey,
-                                      RequestNo: varNewRequestNo,
-                                      LogType: { Value: "Submit" },
-                                      LogMessage: varMyName & "님이 해석 의뢰를 등록했습니다.",
-                                      ActionByName: varMyName,
-                                      ActionByEmail: varMyEmail,
-                                      ActionRole: "Requester",
-                                      ActionAt: Now(),
-                                      RelatedRevisionNo: 0
-                                  }
-                              );
-
-                              If(
-                                  !IsBlank(varRequesterLeaderInfo.'e-mail'),
-                                  Office365Outlook.SendEmailV2(
-                                      varRequesterLeaderInfo.'e-mail',
-                                      "[해석의뢰] 팀장 승인 요청 - " & varNewRequestNo,
-                                      Concatenate(
-                                          "<div style='font-family:Segoe UI;'>",
-                                          "<h3>해석 의뢰 승인 요청</h3>",
-                                          "<p>아래 해석 의뢰에 대한 팀장 승인이 필요합니다.</p>",
-                                          "<p><b>의뢰자:</b> ", varMyName, "</p>",
-                                          "<p><b>의뢰번호:</b> ", varNewRequestNo, "</p>",
-                                          "<p><b>해석명:</b> ", Self.LastSubmit.제목, "</p>",
-                                          "<p><b>품명:</b> ", Self.LastSubmit.ProductName, "</p>",
-                                          "<p><b>품번:</b> ", Self.LastSubmit.PartNo, "</p>",
-                                          "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                          "</div>"
-                                      ),
-                                      {
-                                          IsHtml: true,
-                                          Importance: "High"
-                                      }
-                                  )
-                              )
-                          );
-
-                          // =============================
-                          // 수정 후 후처리
-                          // =============================
-                          If(
-                              varSavedRequestMode = "Edit",
-
-                              Patch(
-                                  Analysis_Request_DB,
-                                  Self.LastSubmit,
-                                  {
-                                      LastRevisionNo: Coalesce(varSelectedRequest.LastRevisionNo, 0) + 1,
-                                      LastRequesterModifiedAt: Now(),
-                                      HasUnreadRevision: true
-                                  }
-                              );
-
-                              Patch(
-                                  Analysis_Request_Log_DB,
-                                  Defaults(Analysis_Request_Log_DB),
-                                  {
-                                      Title: "Modify",
-                                      RequestIDKey: varSelectedRequest.RequestIDKey,
-                                      RequestNo: varSelectedRequest.RequestNo,
-                                      LogType: { Value: "Modify" },
-                                      LogMessage: varMyName & "님이 해석 의뢰 내용을 수정했습니다.",
-                                      ActionByName: varMyName,
-                                      ActionByEmail: varMyEmail,
-                                      ActionRole: "Requester",
-                                      ActionAt: Now(),
-                                      RelatedRevisionNo: Coalesce(varSelectedRequest.LastRevisionNo, 0) + 1
-                                  }
-                              );
-
-                              If(
-                                  !IsBlank(varSelectedRequest.AssigneeEmail),
-                                  Office365Outlook.SendEmailV2(
-                                      varSelectedRequest.AssigneeEmail,
-                                      "[해석의뢰] 수정본 도착 - " & varSelectedRequest.RequestNo,
-                                      Concatenate(
-                                          "<div style='font-family:Segoe UI;'>",
-                                          "<h3>해석 의뢰 수정 알림</h3>",
-                                          "<p>의뢰자가 해석 의뢰 내용을 수정했습니다.</p>",
-                                          "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                          "<p><b>해석명:</b> ", Self.LastSubmit.제목, "</p>",
-                                          "<p><b>의뢰자:</b> ", varMyName, "</p>",
-                                          "<p>앱에서 최신 내용을 확인해 주세요.</p>",
-                                          "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                          "</div>"
-                                      ),
-                                      {
-                                          IsHtml: true,
-                                          Importance: "High"
-                                      }
-                                  )
-                              )
-                          );
-
-                          // =============================
-                          // 공통 처리
-                          // =============================
-                          Refresh(Analysis_Request_DB);
-                          Refresh(Analysis_Request_Revision_DB);
-                          Refresh(Analysis_Request_Log_DB);
-                          Refresh(UserInfo_DB);
-
-                          ResetForm(frmAnalysisRequest);
-                          Set(varShowRequestPopup, false);
-
-                          Set(
-                              varToastMessage,
-                              If(
-                                  varSavedRequestMode = "New",
-                                  "해석 의뢰가 등록되었습니다.",
-                                  "해석 의뢰가 수정되었습니다."
-                              )
-                          );
-                          Set(varShowToast, true);
-
-                          Set(varRequestMode, "View");
-                          Set(varSelectedRequest, Defaults(Analysis_Request_DB));
-                          Reset(txtRevisionComment);
+                        OnSuccess: "=// =============================\r\n// 현재 저장 모드 백업\r\n// =============================\r\nSet(varSavedRequestMode, varRequestMode);\r\n\r\n// =============================\r\n// 신규 등록 후 시스템 컬럼 자동 세팅\r\n// =============================\r\nIf(\r\n    varSavedRequestMode = \"New\",\r\n\r\n    Set(\r\n        varNewRequestNo,\r\n        \"CAE\" &\r\n        Text(Year(Now()) - 2000, \"00\") &\r\n        Text(\r\n            CountRows(\r\n                Filter(\r\n                    Analysis_Request_DB,\r\n                    Year(SubmittedAt) = Year(Now())\r\n                )\r\n            ) + 21,\r\n            \"000\"\r\n        )\r\n    );\r\n\r\n    Set(varNewRequestIDKey, Text(GUID()));\r\n\r\n    Set(\r\n        varRequesterLeaderInfo,\r\n        LookUp(\r\n            UserInfo_DB,\r\n            팀 = varMyTeam &&\r\n            직급2 = \"팀장\"\r\n        )\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_DB,\r\n        Self.LastSubmit,\r\n        {\r\n            RequestNo:              varNewRequestNo,\r\n            RequestIDKey:           varNewRequestIDKey,\r\n            DepartmentName:         varMyDept,\r\n            RequesterTeam:          varMyTeam,\r\n            RequesterName:          varMyName,\r\n            RequesterEmail:         varMyEmail,\r\n            RequesterLeaderEmail:   Coalesce(varRequesterLeaderInfo.'e-mail', \"\"),\r\n            VAApprover1Email:       varVAApprover1Email,\r\n            VAApprover2Email:       varVAApprover2Email,\r\n            Status:                 { Value: \"PendingTeamLeader\" },\r\n            AssigneeEmail:          Blank(),\r\n            ProgressPct:            0,\r\n            LastRevisionNo:         1,    // ← Rev.1 생성되므로 1로 시작\r\n            AssigneeLastReadRevisionNo: 0,\r\n            HasUnreadRevision:      false,\r\n            FinalReportAttached:    false,\r\n            SubmittedAt:            Now(),\r\n            LastRequesterModifiedAt: Now(),\r\n            IsActive:               true\r\n        }\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_Log_DB,\r\n        Defaults(Analysis_Request_Log_DB),\r\n        {\r\n            Title:              \"Submit\",\r\n            RequestIDKey:       varNewRequestIDKey,\r\n            RequestNo:          varNewRequestNo,\r\n            LogType:            { Value: \"Submit\" },\r\n            LogMessage:         varMyName & \"님이 해석 의뢰를 등록했습니다.\",\r\n            ActionByName:       varMyName,\r\n            ActionByEmail:      varMyEmail,\r\n            ActionRole:         \"Requester\",\r\n            ActionAt:           Now(),\r\n            RelatedRevisionNo:  1\r\n        }\r\n    );\r\n\r\n    If(\r\n        !IsBlank(varRequesterLeaderInfo.'e-mail'),\r\n        Office365Outlook.SendEmailV2(\r\n            varRequesterLeaderInfo.'e-mail',\r\n            \"[해석의뢰] 팀장 승인 요청 - \" & varNewRequestNo,\r\n            Concatenate(\r\n                \"<div style='font-family:Segoe UI;'>\",\r\n                \"<h3>해석 의뢰 승인 요청</h3>\",\r\n                \"<p>아래 해석 의뢰에 대한 팀장 승인이 필요합니다.</p>\",\r\n                \"<p><b>의뢰자:</b> \", varMyName, \"</p>\",\r\n                \"<p><b>의뢰번호:</b> \", varNewRequestNo, \"</p>\",\r\n                \"<p><b>해석명:</b> \", varSnapshotTitle, \"</p>\",\r\n                \"<p><b>품명:</b> \", varSnapshotProduct, \"</p>\",\r\n                \"<p><b>품번:</b> \", varSnapshotPart, \"</p>\",\r\n                \"<p><a href='\", varAppUrl, \"'>앱 바로가기</a></p>\",\r\n                \"</div>\"\r\n            ),\r\n            { IsHtml: true, Importance: \"High\" }\r\n        )\r\n    )\r\n);\r\n\r\n// =============================\r\n// 수정 후 후처리\r\n// =============================\r\nIf(\r\n    varSavedRequestMode = \"Edit\",\r\n\r\n    Patch(\r\n        Analysis_Request_DB,\r\n        Self.LastSubmit,\r\n        {\r\n            LastRevisionNo:          varNewRevisionNo,\r\n            LastRequesterModifiedAt: Now(),\r\n            HasUnreadRevision:       true\r\n        }\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_Log_DB,\r\n        Defaults(Analysis_Request_Log_DB),\r\n        {\r\n            Title:              \"Modify\",\r\n            RequestIDKey:       varSelectedRequest.RequestIDKey,\r\n            RequestNo:          varSelectedRequest.RequestNo,\r\n            LogType:            { Value: \"Modify\" },\r\n            LogMessage:         varMyName & \"님이 해석 의뢰 내용을 수정했습니다.\",\r\n            ActionByName:       varMyName,\r\n            ActionByEmail:      varMyEmail,\r\n            ActionRole:         \"Requester\",\r\n            ActionAt:           Now(),\r\n            RelatedRevisionNo:  varNewRevisionNo\r\n        }\r\n    );\r\n\r\n    If(\r\n        !IsBlank(varSelectedRequest.AssigneeEmail),\r\n        Office365Outlook.SendEmailV2(\r\n            varSelectedRequest.AssigneeEmail,\r\n            \"[해석의뢰] 수정본 도착 - \" & varSelectedRequest.RequestNo,\r\n            Concatenate(\r\n                \"<div style='font-family:Segoe UI;'>\",\r\n                \"<h3>해석 의뢰 수정 알림</h3>\",\r\n                \"<p>의뢰자가 해석 의뢰 내용을 수정했습니다.</p>\",\r\n                \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\r\n                \"<p><b>해석명:</b> \", varSnapshotTitle, \"</p>\",\r\n                \"<p><b>의뢰자:</b> \", varMyName, \"</p>\",\r\n                \"<p>앱에서 최신 내용을 확인해 주세요.</p>\",\r\n                \"<p><a href='\", varAppUrl, \"'>앱 바로가기</a></p>\",\r\n                \"</div>\"\r\n            ),\r\n            { IsHtml: true, Importance: \"High\" }\r\n        )\r\n    )\r\n);\r\n\r\n// =============================\r\n// 공통: Revision 첨부 폼 제출\r\n// (Refresh/팝업닫기/토스트는 frmRevisionAttach.OnSuccess에서 처리)\r\n// =============================\r\nSubmitForm(frmRevisionAttach)                                                                                                                                                                                                                                 "
                         Width: =821
                         X: =65
                         Y: =2
@@ -3748,6 +3658,7 @@ Screens:
                               Height: =143
                               Required: =false
                               Update: =DataCardValue2.Attachments
+                              Visible: =false
                               Width: =819
                               X: =0
                               Y: =4
@@ -3976,7 +3887,7 @@ Screens:
                         BorderThickness: =1
                         OnSelect: |-
                           =If(
-                              IsBlank(Trim(txtAnalysisTitle.Text)) || 
+                              IsBlank(Trim(txtAnalysisTitle.Text)) ||
                               IsBlank(Trim(txtProductName.Text)) ||
                               IsBlank(Trim(txtPartNo.Text)) ||
                               IsBlank(Trim(txtAnalysisReason.Value)) ||
@@ -3994,29 +3905,22 @@ Screens:
                                       NotificationType.Warning
                                   ),
 
-                                  // 수정일 때는 먼저 현재본을 Revision DB에 저장
-                                  If(
-                                      varRequestMode = "Edit",
-                                      Patch(
-                                          Analysis_Request_Revision_DB,
-                                          Defaults(Analysis_Request_Revision_DB),
-                                          {
-                                              Title: varSelectedRequest.RequestNo & " Rev." & Text(Coalesce(varSelectedRequest.LastRevisionNo, 0) + 1),
-                                              RequestIDKey: varSelectedRequest.RequestIDKey,
-                                              RequestNo: varSelectedRequest.RequestNo,
-                                              RevisionNo: Coalesce(varSelectedRequest.LastRevisionNo, 0) + 1,
-                                              RevisedByName: varMyName,
-                                              RevisedByEmail: varMyEmail,
-                                              RevisedAt: Now(),
-                                              DepartmentNameSnapshot: varSelectedRequest.DepartmentName,
-                                              RequesterNameSnapshot: varSelectedRequest.RequesterName,
-                                              AnalysisTitleSnapshot: varSelectedRequest.제목,
-                                              ProductNameSnapshot: varSelectedRequest.ProductName,
-                                              PartNoSnapshot: varSelectedRequest.PartNo,
-                                              AnalysisReasonSnapshot: varSelectedRequest.AnalysisReason,
-                                              AnalysisConditionSnapshot: varSelectedRequest.AnalysisCondition,
-                                              RevisionComment: Trim(txtRevisionComment.Value)
-                                          }
+                                  // SubmitForm 전에 새 텍스트 값들을 변수로 저장
+                                  // (폼 제출 후 컨트롤이 리셋되기 전에 캡처)
+                                  Set(varSnapshotTitle,     Trim(txtAnalysisTitle.Text));
+                                  Set(varSnapshotProduct,   Trim(txtProductName.Text));
+                                  Set(varSnapshotPart,      Trim(txtPartNo.Text));
+                                  Set(varSnapshotReason,    Trim(txtAnalysisReason.Value));
+                                  Set(varSnapshotCondition, Trim(txtAnalysisCondition.Value));
+                                  Set(varRevisionComment,   If(varRequestMode = "Edit", Trim(txtRevisionComment.Value), ""));
+
+                                  // Rev 번호 사전 계산
+                                  Set(
+                                      varNewRevisionNo,
+                                      If(
+                                          varRequestMode = "New",
+                                          1,
+                                          Coalesce(varSelectedRequest.LastRevisionNo, 0) + 1
                                       )
                                   );
 
@@ -4077,25 +3981,112 @@ Screens:
                         BorderColor: =RGBA(243, 242, 241, 1)
                         DataSource: =Analysis_Request_Revision_DB
                         DefaultMode: =FormMode.New
-                        Height: =87
+                        Height: =150
                         Item: =Blank()
-                        Visible: =false
-                        Width: =214
-                        Y: =381
+                        OnSuccess: |-
+                          =// Revision 행에 메타데이터 Patch
+                          // (첨부파일은 폼 제출 시 자동 저장됨, 여기선 나머지 컬럼만 채움)
+                          If(
+                              !IsBlank(Self.LastSubmit),
+                              Patch(
+                                  Analysis_Request_Revision_DB,
+                                  Self.LastSubmit,
+                                  {
+                                      제목: If(
+                                          varSavedRequestMode = "New",
+                                          varNewRequestNo,
+                                          varSelectedRequest.RequestNo
+                                      ) & " Rev." & Text(varNewRevisionNo, "0"),
+
+                                      'RequestIDKey                            ': If(
+                                          varSavedRequestMode = "New",
+                                          varNewRequestIDKey,
+                                          varSelectedRequest.RequestIDKey
+                                      ),
+
+                                      RequestNo: If(
+                                          varSavedRequestMode = "New",
+                                          varNewRequestNo,
+                                          varSelectedRequest.RequestNo
+                                      ),
+
+                                      RevisionNo:               varNewRevisionNo,
+                                      RevisedByName:            varMyName,
+                                      RevisedByEmail:           varMyEmail,
+                                      RevisedAt:                Now(),
+                                      DepartmentNameSnapshot:   varMyDept,
+                                      RequesterNameSnapshot:    varMyName,
+                                      AnalysisTitleSnapshot:    varSnapshotTitle,
+                                      ProductNameSnapshot:      varSnapshotProduct,
+                                      PartNoSnapshot:           varSnapshotPart,
+                                      AnalysisReasonSnapshot:   varSnapshotReason,
+                                      AnalysisConditionSnapshot: varSnapshotCondition,
+                                      RevisionComment:          varRevisionComment
+                                  }
+                              )
+                          );
+
+                          // 새로고침
+                          Refresh(Analysis_Request_DB);
+                          Refresh(Analysis_Request_Revision_DB);
+                          Refresh(Analysis_Request_Log_DB);
+                          Refresh(UserInfo_DB);
+
+                          // 폼 초기화
+                          ResetForm(frmAnalysisRequest);
+                          ResetForm(frmRevisionAttach);
+
+                          // 팝업 닫기
+                          Set(varShowRequestPopup, false);
+                          Set(varRequestMode, "View");
+                          Set(varSelectedRequest, Defaults(Analysis_Request_DB));
+                          Reset(txtRevisionComment);
+
+                          // 토스트
+                          Set(
+                              varToastMessage,
+                              If(varSavedRequestMode = "New", "해석 의뢰가 등록되었습니다.", "해석 의뢰가 수정되었습니다.")
+                          );
+                          Set(varShowToast, true);
+                        Visible: =varShowRequestPopup && (varRequestMode = "New" || varRequestMode = "Edit")
+                        Width: |-
+                          =If(
+                              varRequestMode = "New",
+                              821,
+                              517
+                          )
+                        X: |-
+                          =If(
+                              varRequestMode = "New",
+                              frmAnalysisRequest.X,
+                              frmAnalysisRequest.X + 304
+                          )
+                        Y: |+
+                          =frmAnalysisRequest.Y + frmAnalysisRequest.Height -190
                       Children:
                         - 첨부 파일_DataCard4:
                             Control: TypedDataCard@1.0.7
                             Variant: ClassicAttachmentsEdit
-                            IsLocked: true
                             Properties:
                               BorderColor: =RGBA(243, 242, 241, 1)
                               DataField: ="{Attachments}"
                               Default: =ThisItem.'첨부 파일'
-                              DisplayName: =DataSourceInfo([@Analysis_Request_Revision_DB],DataSourceInfo.DisplayName,'{Attachments}')
+                              DisplayName: =DataSourceInfo([@Analysis_Request_Revision_DB],DataSourceInfo.DisplayName,'첨부 파일')
+                              Height: =142
                               Required: =false
                               Update: =DataCardValueRev.Attachments
-                              Width: =71
-                              X: =0
+                              Width: |-
+                                =If(
+                                    varRequestMode = "New",
+                                    821,
+                                    517
+                                )
+                              X: |-
+                                =If(
+                                    varRequestMode = "New",
+                                    frmAnalysisRequest.X,
+                                    frmAnalysisRequest.X + 304
+                                )
                               Y: =0
                             Children:
                               - DataCardKey10:
@@ -4106,7 +4097,7 @@ Screens:
                                     BorderColor: =RGBA(0, 0, 0, 0)
                                     BorderStyle: =BorderStyle.None
                                     BorderThickness: =2
-                                    Color: =RGBA(37, 36, 35, 1)
+                                    Color: =RGBA(100, 116, 139, 1)
                                     DisabledBorderColor: =RGBA(0, 0, 0, 0)
                                     DisabledColor: =RGBA(200, 198, 196, 1)
                                     FocusedBorderThickness: =2
@@ -4115,11 +4106,10 @@ Screens:
                                     Height: =34
                                     PaddingLeft: =0
                                     Size: =10.5
-                                    Text: =Parent.DisplayName
-                                    Width: =Parent.Width - 60
+                                    Text: ="새 첨부파일 업로드"
+                                    Width: =141
                                     Wrap: =false
-                                    X: =30
-                                    Y: =10
+                                    X: =14
                               - DataCardValueRev:
                                   Control: Attachments@2.3.0
                                   MetadataKey: FieldValue
@@ -4134,6 +4124,7 @@ Screens:
                                     Fill: =RGBA(243, 242, 241, 1)
                                     FocusedBorderThickness: =2
                                     Font: =Font.'Segoe UI'
+                                    Height: =110
                                     HoverColor: =RGBA(37, 36, 35, 1)
                                     HoverFill: =RGBA(243, 242, 241, 1)
                                     ItemColor: =RGBA(0, 0, 0, 1)
@@ -4142,6 +4133,8 @@ Screens:
                                     ItemHoverFill: =RGBA(243, 242, 241, 1)
                                     ItemSpacing: =12
                                     Items: =Parent.Default
+                                    MaxAttachmentSize: =100
+                                    MaxAttachments: =8
                                     NoAttachmentsColor: =RGBA(200, 198, 196, 1)
                                     PaddingBottom: =5
                                     PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
@@ -4151,9 +4144,14 @@ Screens:
                                     PressedFill: =RGBA(237, 235, 233, 1)
                                     Size: =10.5
                                     Tooltip: =Parent.DisplayName
-                                    Width: =Parent.Width - 60
-                                    X: =30
-                                    Y: =DataCardKey10.Y + DataCardKey10.Height + 5
+                                    Width: |-
+                                      =If(
+                                          varRequestMode = "New",
+                                          760,
+                                          455
+                                      )
+                                    X: =14
+                                    Y: =30
                               - ErrorMessage9:
                                   Control: Label@2.5.1
                                   MetadataKey: ErrorMessage
@@ -4180,6 +4178,130 @@ Screens:
                                     Width: =Parent.Width - 60
                                     X: =30
                                     Y: =DataCardValueRev.Y + DataCardValueRev.Height
+                              - lblAttachNotice:
+                                  Control: ModernText@1.0.0
+                                  Properties:
+                                    Color: =RGBA(185, 28, 28, 1)
+                                    Font: =Font.Verdana
+                                    FontWeight: =FontWeight.Semibold
+                                    Size: =11
+                                    Text: ="※ 이전 버전 파일은 유지되지 않으니 새로 업로드해 주세요."
+                                    Visible: =varRequestMode = "Edit"
+                                    Width: =294
+                                    X: =183
+                  - frmPrevRevAttachView:
+                      Control: Form@2.4.4
+                      Layout: Vertical
+                      Properties:
+                        BorderColor: =RGBA(243, 242, 241, 1)
+                        DataSource: =Analysis_Request_Revision_DB
+                        Height: =150
+                        Item: =varLatestRevision
+                        Visible: =varRequestMode = "Edit" && !IsBlank(varLatestRevision)
+                        Width: =300
+                        X: =frmAnalysisRequest.X
+                        Y: |+
+                          =frmAnalysisRequest.Y + frmAnalysisRequest.Height-200
+                      Children:
+                        - 첨부 파일_PrevDataCard:
+                            Control: TypedDataCard@1.0.7
+                            Variant: ClassicAttachmentsEdit
+                            Properties:
+                              BorderColor: =RGBA(243, 242, 241, 1)
+                              DataField: ="{Attachments}"
+                              Default: =ThisItem.'첨부 파일'
+                              DisplayMode: =DisplayMode.View
+                              DisplayName: =DataSourceInfo([@Analysis_Request_Revision_DB],DataSourceInfo.DisplayName,'{Attachments}')
+                              Height: =149
+                              Required: =false
+                              Update: =DataCardValuePrev.Attachments
+                              Width: =300
+                              X: =0
+                              Y: =0
+                            Children:
+                              - DataCardKey11:
+                                  Control: Label@2.5.1
+                                  MetadataKey: FieldName
+                                  Properties:
+                                    AutoHeight: =true
+                                    BorderColor: =RGBA(0, 0, 0, 0)
+                                    BorderStyle: =BorderStyle.None
+                                    BorderThickness: =2
+                                    Color: =RGBA(100, 116, 139, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(200, 198, 196, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =34
+                                    PaddingLeft: =0
+                                    Size: =10.5
+                                    Text: ="이전 버전 첨부파일"
+                                    Width: =119
+                                    Wrap: =false
+                                    X: =30
+                                    Y: =10
+                              - DataCardValuePrev:
+                                  Control: Attachments@2.3.0
+                                  MetadataKey: FieldValue
+                                  Properties:
+                                    BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                                    BorderStyle: =BorderStyle.None
+                                    Color: =RGBA(37, 36, 35, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(200, 198, 196, 1)
+                                    DisabledFill: =RGBA(243, 242, 241, 1)
+                                    DisplayMode: =Parent.DisplayMode
+                                    Fill: =RGBA(243, 242, 241, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    Height: =109
+                                    HoverColor: =RGBA(37, 36, 35, 1)
+                                    HoverFill: =RGBA(243, 242, 241, 1)
+                                    ItemColor: =RGBA(0, 0, 0, 1)
+                                    ItemFill: =RGBA(237, 235, 233, 1)
+                                    ItemHoverColor: =RGBA(37, 36, 35, 1)
+                                    ItemHoverFill: =RGBA(243, 242, 241, 1)
+                                    ItemSpacing: =12
+                                    Items: =Parent.Default
+                                    NoAttachmentsColor: =RGBA(200, 198, 196, 1)
+                                    PaddingBottom: =5
+                                    PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
+                                    PaddingRight: =5
+                                    PaddingTop: =5
+                                    PressedColor: =RGBA(255, 255, 255, 1)
+                                    PressedFill: =RGBA(237, 235, 233, 1)
+                                    Size: =10.5
+                                    Tooltip: =Parent.DisplayName
+                                    Width: =268
+                                    X: =30
+                                    Y: =40
+                              - ErrorMessage10:
+                                  Control: Label@2.5.1
+                                  MetadataKey: ErrorMessage
+                                  Properties:
+                                    AutoHeight: =true
+                                    BorderColor: =RGBA(0, 0, 0, 0)
+                                    BorderStyle: =BorderStyle.None
+                                    BorderThickness: =2
+                                    Color: =RGBA(168, 0, 0, 1)
+                                    DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                    DisabledColor: =RGBA(168, 0, 0, 1)
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =10
+                                    Live: =Live.Assertive
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =10.5
+                                    Text: =Parent.Error
+                                    Visible: =Parent.DisplayMode=DisplayMode.Edit
+                                    Width: =Parent.Width - 60
+                                    X: =30
+                                    Y: =DataCardValuePrev.Y + DataCardValuePrev.Height
                               - StarVisible9:
                                   Control: Label@2.5.1
                                   MetadataKey: FieldRequired
@@ -4194,14 +4316,14 @@ Screens:
                                     FocusedBorderThickness: =2
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Semibold
-                                    Height: =DataCardKey10.Height
+                                    Height: =DataCardKey11.Height
                                     PaddingLeft: =0
                                     Size: =10.5
                                     Text: ="*"
                                     Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                     Width: =30
                                     Wrap: =false
-                                    Y: =DataCardKey10.Y
+                                    Y: =DataCardKey11.Y
             - Container2:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -4385,7 +4507,7 @@ Screens:
                           =SortByColumns(
                               Filter(
                                   Analysis_Request_Revision_DB,
-                                  RequestIDKey = varSelectedRequest.RequestIDKey
+                                  'RequestIDKey                            ' = varSelectedRequest.RequestIDKey
                               ),
                               "RevisionNo",
                               SortOrder.Descending
@@ -5142,7 +5264,7 @@ Screens:
 
                     RemoveIf(
                         Analysis_Request_Revision_DB,
-                        RequestIDKey = varSelectedRequest.RequestIDKey
+                        'RequestIDKey                            ' = varSelectedRequest.RequestIDKey
                     );
 
                     Refresh(Analysis_Request_DB);
