@@ -4,10 +4,7 @@ Screens:
       Fill: =
       LoadingSpinnerColor: =RGBA(98, 100, 167, 1)
       OnVisible: |-
-        =Set(
-            varAppUrl,
-            "https://apps.powerapps.com/play/e/ad9a8659-6733-e9a7-8538-15b993f9459a/a/7fa36ba2-8820-4841-808d-c8e9d75f30b6?tenantId=f68dbec8-0e62-41cb-98b3-22f1aa40c4ea&hint=b57ade5e-ffd3-4356-b3e2-1b89b353f811&sourcetime=1776065643109"
-        );
+        =
 
         // =============================
         // [1] 현재 로그인 사용자 정보
@@ -627,7 +624,7 @@ Screens:
                         FieldType: ="s"
                         Order: =1
             - txtSearch:
-                Control: ModernTextInput@1.1.0
+                Control: ModernTextInput@1.1.1
                 Properties:
                   Default: |+
                     =
@@ -2085,73 +2082,7 @@ Screens:
                               BorderColor: =RGBA(220, 38, 38, 1)
                               Font: =Font.Verdana
                               FontSize: =14
-                              OnSelect: |-
-                                =If(
-                                    IsBlank(Trim(txtLeaderRejectReason.Value)),
-                                    Notify("반려 사유를 입력해 주세요.", NotificationType.Warning),
-
-                                    Patch(
-                                        Analysis_Request_DB,
-                                        varSelectedRequest,
-                                        {
-                                            Status: { Value: "Rejected" },
-                                            RejectedAt: Now(),
-                                            RejectReason: Trim(txtLeaderRejectReason.Value)
-                                        }
-                                    );
-
-                                    Patch(
-                                        Analysis_Request_Log_DB,
-                                        Defaults(Analysis_Request_Log_DB),
-                                        {
-                                            Title: "TeamLeaderReject",
-                                            RequestIDKey: varSelectedRequest.RequestIDKey,
-                                            RequestNo: varSelectedRequest.RequestNo,
-                                            LogType: { Value: "TeamLeaderReject" },
-                                            LogMessage: varMyName & "님이 팀장 반려했습니다. 사유: " & Trim(txtLeaderRejectReason.Value),
-                                            ActionByName: varMyName,
-                                            ActionByEmail: varMyEmail,
-                                            ActionRole: "RequesterLeader",
-                                            ActionAt: Now(),
-                                            RelatedRevisionNo: varSelectedRequest.LastRevisionNo
-                                        }
-                                    );
-
-                                    // 의뢰자 메일 발송
-                                    If(
-                                        !IsBlank(varSelectedRequest.RequesterEmail),
-                                        Office365Outlook.SendEmailV2(
-                                            varSelectedRequest.RequesterEmail,
-                                            "[해석의뢰] 팀장 반려 - " & varSelectedRequest.RequestNo,
-                                            Concatenate(
-                                                "<div style='font-family:Segoe UI;'>",
-                                                "<h3>해석 의뢰 반려 안내</h3>",
-                                                "<p>등록하신 해석 의뢰가 팀장에 의해 반려되었습니다.</p>",
-                                                "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                                "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                                "<p><b>반려자:</b> ", varMyName, "</p>",
-                                                "<p><b>반려사유:</b> ", Trim(txtLeaderRejectReason.Value), "</p>",
-                                                "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                                "</div>"
-                                            ),
-                                            {
-                                                IsHtml: true,
-                                                Importance: "High"
-                                            }
-                                        )
-                                    );
-
-                                    Refresh(Analysis_Request_DB);
-                                    Refresh(Analysis_Request_Log_DB);
-
-                                    Set(
-                                        varSelectedRequest,
-                                        LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
-                                    );
-
-                                    Set(varToastMessage, "팀장 반려가 완료되었습니다.");
-                                    Set(varShowToast, true)
-                                )
+                              OnSelect: "=If(\n    IsBlank(Trim(txtLeaderRejectReason.Value)),\n    Notify(\"반려 사유를 입력해 주세요.\", NotificationType.Warning),\n\n    Patch(\n        Analysis_Request_DB,\n        varSelectedRequest,\n        {\n            Status: { Value: \"Rejected\" },\n            RejectedAt: Now(),\n            RejectReason: Trim(txtLeaderRejectReason.Value)\n        }\n    );\n\n    Patch(\n        Analysis_Request_Log_DB,\n        Defaults(Analysis_Request_Log_DB),\n        {\n            Title: \"TeamLeaderReject\",\n            RequestIDKey: varSelectedRequest.RequestIDKey,\n            RequestNo: varSelectedRequest.RequestNo,\n            LogType: { Value: \"TeamLeaderReject\" },\n            LogMessage: varMyName & \"님이 팀장 반려했습니다. 사유: \" & Trim(txtLeaderRejectReason.Value),\n            ActionByName: varMyName,\n            ActionByEmail: varMyEmail,\n            ActionRole: \"RequesterLeader\",\n            ActionAt: Now(),\n            RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n        }\n    );\n\n    // 의뢰자 메일 발송\n    If(\n        !IsBlank(varSelectedRequest.RequesterEmail),\n        Office365Outlook.SendEmailV2(\n            varSelectedRequest.RequesterEmail,\n            \"[해석의뢰] 팀장 반려 - \" & varSelectedRequest.RequestNo,\n            Concatenate(\n                \"<div style='font-family:Segoe UI;'>\",\n                \"<h3>해석 의뢰 반려 안내</h3>\",\n                \"<p>등록하신 해석 의뢰가 팀장에 의해 반려되었습니다.</p>\",\n                \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n                \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n                \"<p><b>반려자:</b> \", varMyName, \"</p>\",\n                \"<p><b>반려사유:</b> \", Trim(txtLeaderRejectReason.Value), \"</p>\",\n                \n                \"</div>\"\n            ),\n            {\n                IsHtml: true,\n                Importance: \"High\"\n            }\n        )\n    );\n\n    Refresh(Analysis_Request_DB);\n    Refresh(Analysis_Request_Log_DB);\n\n    Set(\n        varSelectedRequest,\n        LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\n    );\n\n    Set(varToastMessage, \"팀장 반려가 완료되었습니다.\");\n    Set(varShowToast, true)\n)"
                               Text: ="반려"
                               Width: =86
                               X: =128
@@ -2165,117 +2096,7 @@ Screens:
                               BorderThickness: =1
                               Font: =Font.Verdana
                               FontSize: =14
-                              OnSelect: |-
-                                =Patch(
-                                    Analysis_Request_DB,
-                                    varSelectedRequest,
-                                    {
-                                        Status: { Value: "PendingVAApproval" }
-                                    }
-                                );
-
-                                Patch(
-                                    Analysis_Request_Log_DB,
-                                    Defaults(Analysis_Request_Log_DB),
-                                    {
-                                        Title: "TeamLeaderApprove",
-                                        RequestIDKey: varSelectedRequest.RequestIDKey,
-                                        RequestNo: varSelectedRequest.RequestNo,
-                                        LogType: { Value: "TeamLeaderApprove" },
-                                        LogMessage: varMyName & "님이 팀장 승인을 완료했습니다.",
-                                        ActionByName: varMyName,
-                                        ActionByEmail: varMyEmail,
-                                        ActionRole: "RequesterLeader",
-                                        ActionAt: Now(),
-                                        RelatedRevisionNo: varSelectedRequest.LastRevisionNo
-                                    }
-                                );
-
-                                // 가상검증 승인자 1 메일
-                                If(
-                                    !IsBlank(varVAApprover1Email),
-                                    Office365Outlook.SendEmailV2(
-                                        varVAApprover1Email,
-                                        "[해석의뢰] 가상검증 승인 요청 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>가상검증 승인 요청</h3>",
-                                            "<p>팀장 승인 완료된 해석 의뢰가 있습니다.</p>",
-                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>의뢰자:</b> ", varSelectedRequest.RequesterName, "</p>",
-                                            "<p><b>품명:</b> ", varSelectedRequest.ProductName, "</p>",
-                                            "<p><b>품번:</b> ", varSelectedRequest.PartNo, "</p>",
-                                            "<p>담당자를 지정한 뒤 승인 또는 반려를 진행해 주세요.</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "High"
-                                        }
-                                    )
-                                );
-
-                                // 가상검증 승인자 2 메일
-                                If(
-                                    !IsBlank(varVAApprover2Email),
-                                    Office365Outlook.SendEmailV2(
-                                        varVAApprover2Email,
-                                        "[해석의뢰] 가상검증 승인 요청 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>가상검증 승인 요청</h3>",
-                                            "<p>팀장 승인 완료된 해석 의뢰가 있습니다.</p>",
-                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>의뢰자:</b> ", varSelectedRequest.RequesterName, "</p>",
-                                            "<p><b>품명:</b> ", varSelectedRequest.ProductName, "</p>",
-                                            "<p><b>품번:</b> ", varSelectedRequest.PartNo, "</p>",
-                                            "<p>담당자를 지정한 뒤 승인 또는 반려를 진행해 주세요.</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "High"
-                                        }
-                                    )
-                                );
-
-                                // 의뢰자 메일
-                                If(
-                                    !IsBlank(varSelectedRequest.RequesterEmail),
-                                    Office365Outlook.SendEmailV2(
-                                        varSelectedRequest.RequesterEmail,
-                                        "[해석의뢰] 팀장 승인 완료 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>팀장 승인 완료</h3>",
-                                            "<p>등록하신 해석 의뢰가 팀장 승인되었습니다.</p>",
-                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>다음 단계:</b> 가상검증 승인 진행</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "Normal"
-                                        }
-                                    )
-                                );
-
-                                Refresh(Analysis_Request_DB);
-                                Refresh(Analysis_Request_Log_DB);
-
-                                Set(
-                                    varSelectedRequest,
-                                    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
-                                );
-
-                                Set(varToastMessage, "팀장 승인이 완료되었습니다.");
-                                Set(varShowToast, true);
+                              OnSelect: "=Patch(\n    Analysis_Request_DB,\n    varSelectedRequest,\n    {\n        Status: { Value: \"PendingVAApproval\" }\n    }\n);\n\nPatch(\n    Analysis_Request_Log_DB,\n    Defaults(Analysis_Request_Log_DB),\n    {\n        Title: \"TeamLeaderApprove\",\n        RequestIDKey: varSelectedRequest.RequestIDKey,\n        RequestNo: varSelectedRequest.RequestNo,\n        LogType: { Value: \"TeamLeaderApprove\" },\n        LogMessage: varMyName & \"님이 팀장 승인을 완료했습니다.\",\n        ActionByName: varMyName,\n        ActionByEmail: varMyEmail,\n        ActionRole: \"RequesterLeader\",\n        ActionAt: Now(),\n        RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n    }\n);\n\n// 가상검증 승인자 1 메일\nIf(\n    !IsBlank(varVAApprover1Email),\n    Office365Outlook.SendEmailV2(\n        varVAApprover1Email,\n        \"[해석의뢰] 가상검증 승인 요청 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>가상검증 승인 요청</h3>\",\n            \"<p>팀장 승인 완료된 해석 의뢰가 있습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>의뢰자:</b> \", varSelectedRequest.RequesterName, \"</p>\",\n            \"<p><b>품명:</b> \", varSelectedRequest.ProductName, \"</p>\",\n            \"<p><b>품번:</b> \", varSelectedRequest.PartNo, \"</p>\",\n            \"<p>담당자를 지정한 뒤 승인 또는 반려를 진행해 주세요.</p>\",\n            \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"High\"\n        }\n    )\n);\n\n// 가상검증 승인자 2 메일\nIf(\n    !IsBlank(varVAApprover2Email),\n    Office365Outlook.SendEmailV2(\n        varVAApprover2Email,\n        \"[해석의뢰] 가상검증 승인 요청 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>가상검증 승인 요청</h3>\",\n            \"<p>팀장 승인 완료된 해석 의뢰가 있습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>의뢰자:</b> \", varSelectedRequest.RequesterName, \"</p>\",\n            \"<p><b>품명:</b> \", varSelectedRequest.ProductName, \"</p>\",\n            \"<p><b>품번:</b> \", varSelectedRequest.PartNo, \"</p>\",\n            \"<p>담당자를 지정한 뒤 승인 또는 반려를 진행해 주세요.</p>\",\n           \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"High\"\n        }\n    )\n);\n\n// 의뢰자 메일\nIf(\n    !IsBlank(varSelectedRequest.RequesterEmail),\n    Office365Outlook.SendEmailV2(\n        varSelectedRequest.RequesterEmail,\n        \"[해석의뢰] 팀장 승인 완료 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>팀장 승인 완료</h3>\",\n            \"<p>등록하신 해석 의뢰가 팀장 승인되었습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>다음 단계:</b> 가상검증 승인 진행</p>\",\n            \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"Normal\"\n        }\n    )\n);\n\nRefresh(Analysis_Request_DB);\nRefresh(Analysis_Request_Log_DB);\n\nSet(\n    varSelectedRequest,\n    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\n);\n\nSet(varToastMessage, \"팀장 승인이 완료되었습니다.\");\nSet(varShowToast, true);"
                               Text: ="승인"
                               Width: =86
                               X: =29
@@ -2384,70 +2205,7 @@ Screens:
                               BorderStyle: =BorderStyle.Solid
                               BorderThickness: =1
                               Height: =28
-                              OnSelect: |-
-                                =// 진행 정보 저장
-                                Patch(
-                                    Analysis_Request_DB,
-                                    varSelectedRequest,
-                                    {
-                                        ExpectedFinishDate: dpExpectedFinishDate.SelectedDate,
-                                        WorkerMemo: txtWorkerMemo.Text,
-                                        ProgressPct: sldProgressPct.Value
-                                    }
-                                );
-
-                                // 로그 기록
-                                Patch(
-                                    Analysis_Request_Log_DB,
-                                    Defaults(Analysis_Request_Log_DB),
-                                    {
-                                        Title: "WorkProgressSaved",
-                                        RequestIDKey: varSelectedRequest.RequestIDKey,
-                                        RequestNo: varSelectedRequest.RequestNo,
-                                        LogType: { Value: "WorkProgressSaved" },
-                                        LogMessage: varMyName & "님이 진행 정보를 업데이트했습니다.",
-                                        ActionByName: varMyName,
-                                        ActionByEmail: varMyEmail,
-                                        ActionRole: "Assignee",
-                                        ActionAt: Now(),
-                                        RelatedRevisionNo: varSelectedRequest.LastRevisionNo
-                                    }
-                                );
-
-                                // 의뢰자에게 업데이트 알림 메일
-                                If(
-                                    !IsBlank(varSelectedRequest.RequesterEmail),
-                                    Office365Outlook.SendEmailV2(
-                                        varSelectedRequest.RequesterEmail,
-                                        "[해석의뢰] 진행 정보 업데이트 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>진행 정보 업데이트</h3>",
-                                            "<p>담당자가 해석 의뢰 진행 정보를 업데이트했습니다.</p>",
-                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>담당자:</b> ", varMyName, "</p>",
-                                            "<p><b>예상 완료일:</b> ", Text(dpExpectedFinishDate.SelectedDate, "yyyy년 mm월 dd일"), "</p>",
-                                            "<p><b>작업 메모:</b> ", txtWorkerMemo.Text, "</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "Normal"
-                                        }
-                                    )
-                                );
-
-                                Refresh(Analysis_Request_DB);
-
-                                Set(
-                                    varSelectedRequest,
-                                    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
-                                );
-
-                                Set(varToastMessage, "진행 정보가 저장되었습니다.");
-                                Set(varShowToast, true);
+                              OnSelect: "=// 진행 정보 저장\r\nPatch(\r\n    Analysis_Request_DB,\r\n    varSelectedRequest,\r\n    {\r\n        ExpectedFinishDate: dpExpectedFinishDate.SelectedDate,\r\n        WorkerMemo: txtWorkerMemo.Text,\r\n        ProgressPct: sldProgressPct.Value\r\n    }\r\n);\r\n\r\n// 로그 기록\r\nPatch(\r\n    Analysis_Request_Log_DB,\r\n    Defaults(Analysis_Request_Log_DB),\r\n    {\r\n        Title: \"WorkProgressSaved\",\r\n        RequestIDKey: varSelectedRequest.RequestIDKey,\r\n        RequestNo: varSelectedRequest.RequestNo,\r\n        LogType: { Value: \"WorkProgressSaved\" },\r\n        LogMessage: varMyName & \"님이 진행 정보를 업데이트했습니다.\",\r\n        ActionByName: varMyName,\r\n        ActionByEmail: varMyEmail,\r\n        ActionRole: \"Assignee\",\r\n        ActionAt: Now(),\r\n        RelatedRevisionNo: varSelectedRequest.LastRevisionNo\r\n    }\r\n);\r\n\r\n// 의뢰자에게 업데이트 알림 메일\r\nIf(\r\n    !IsBlank(varSelectedRequest.RequesterEmail),\r\n    Office365Outlook.SendEmailV2(\r\n        varSelectedRequest.RequesterEmail,\r\n        \"[해석의뢰] 진행 정보 업데이트 - \" & varSelectedRequest.RequestNo,\r\n        Concatenate(\r\n            \"<div style='font-family:Segoe UI;'>\",\r\n            \"<h3>진행 정보 업데이트</h3>\",\r\n            \"<p>담당자가 해석 의뢰 진행 정보를 업데이트했습니다.</p>\",\r\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\r\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\r\n            \"<p><b>담당자:</b> \", varMyName, \"</p>\",\r\n            \"<p><b>예상 완료일:</b> \", Text(dpExpectedFinishDate.SelectedDate, \"yyyy년 mm월 dd일\"), \"</p>\",\r\n            \"<p><b>작업 메모:</b> \", txtWorkerMemo.Text, \"</p>\",\r\n           \r\n            \"</div>\"\r\n        ),\r\n        {\r\n            IsHtml: true,\r\n            Importance: \"Normal\"\r\n        }\r\n    )\r\n);\r\n\r\nRefresh(Analysis_Request_DB);\r\n\r\nSet(\r\n    varSelectedRequest,\r\n    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\r\n);\r\n\r\nSet(varToastMessage, \"진행 정보가 저장되었습니다.\");\r\nSet(varShowToast, true);"
                               Text: ="진행 저장"
                               Width: =95
                               X: =499
@@ -2466,7 +2224,7 @@ Screens:
                               X: =112
                               Y: =53
                         - dpExpectedFinishDate:
-                            Control: ModernDatePicker@1.0.0
+                            Control: ModernDatePicker@1.0.1
                             Properties:
                               DefaultDate: =varSelectedRequest.ExpectedFinishDate
                               Font: =Font.Verdana
@@ -2537,7 +2295,7 @@ Screens:
                               X: =25
                               Y: =86
                         - txtWorkerMemo:
-                            Control: ModernTextInput@1.1.0
+                            Control: ModernTextInput@1.1.1
                             Properties:
                               Default: =Coalesce(varSelectedRequest.WorkerMemo, "")
                               Font: =Font.Verdana
@@ -2609,73 +2367,7 @@ Screens:
                               BorderColor: =RGBA(220, 38, 38, 1)
                               Font: =Font.Verdana
                               FontSize: =14
-                              OnSelect: |-
-                                =If(
-                                    IsBlank(Trim(txtVARejectReason.Text)),
-                                    Notify("반려 사유를 입력해 주세요.", NotificationType.Warning),
-
-                                    Patch(
-                                        Analysis_Request_DB,
-                                        varSelectedRequest,
-                                        {
-                                            Status: { Value: "Rejected" },
-                                            RejectedAt: Now(),
-                                            RejectReason: Trim(txtVARejectReason.Text)
-                                        }
-                                    );
-
-                                    Patch(
-                                        Analysis_Request_Log_DB,
-                                        Defaults(Analysis_Request_Log_DB),
-                                        {
-                                            Title: "VAReject",
-                                            RequestIDKey: varSelectedRequest.RequestIDKey,
-                                            RequestNo: varSelectedRequest.RequestNo,
-                                            LogType: { Value: "VAReject" },
-                                            LogMessage: varMyName & "님이 가상검증 반려했습니다. 사유: " & Trim(txtVARejectReason.Text),
-                                            ActionByName: varMyName,
-                                            ActionByEmail: varMyEmail,
-                                            ActionRole: "VAApprover",
-                                            ActionAt: Now(),
-                                            RelatedRevisionNo: varSelectedRequest.LastRevisionNo
-                                        }
-                                    );
-
-                                    // 의뢰자 메일 발송
-                                    If(
-                                        !IsBlank(varSelectedRequest.RequesterEmail),
-                                        Office365Outlook.SendEmailV2(
-                                            varSelectedRequest.RequesterEmail,
-                                            "[해석의뢰] 가상검증 반려 - " & varSelectedRequest.RequestNo,
-                                            Concatenate(
-                                                "<div style='font-family:Segoe UI;'>",
-                                                "<h3>해석 의뢰 반려 안내</h3>",
-                                                "<p>등록하신 해석 의뢰가 가상검증 승인 단계에서 반려되었습니다.</p>",
-                                                "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                                "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                                "<p><b>반려자:</b> ", varMyName, "</p>",
-                                                "<p><b>반려사유:</b> ", Trim(txtVARejectReason.Text), "</p>",
-                                                "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                                "</div>"
-                                            ),
-                                            {
-                                                IsHtml: true,
-                                                Importance: "High"
-                                            }
-                                        )
-                                    );
-
-                                    Refresh(Analysis_Request_DB);
-                                    Refresh(Analysis_Request_Log_DB);
-
-                                    Set(
-                                        varSelectedRequest,
-                                        LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
-                                    );
-
-                                    Set(varToastMessage, "가상검증 반려가 완료되었습니다.");
-                                    Set(varShowToast, true)
-                                )
+                              OnSelect: "=If(\n    IsBlank(Trim(txtVARejectReason.Text)),\n    Notify(\"반려 사유를 입력해 주세요.\", NotificationType.Warning),\n\n    Patch(\n        Analysis_Request_DB,\n        varSelectedRequest,\n        {\n            Status: { Value: \"Rejected\" },\n            RejectedAt: Now(),\n            RejectReason: Trim(txtVARejectReason.Text)\n        }\n    );\n\n    Patch(\n        Analysis_Request_Log_DB,\n        Defaults(Analysis_Request_Log_DB),\n        {\n            Title: \"VAReject\",\n            RequestIDKey: varSelectedRequest.RequestIDKey,\n            RequestNo: varSelectedRequest.RequestNo,\n            LogType: { Value: \"VAReject\" },\n            LogMessage: varMyName & \"님이 가상검증 반려했습니다. 사유: \" & Trim(txtVARejectReason.Text),\n            ActionByName: varMyName,\n            ActionByEmail: varMyEmail,\n            ActionRole: \"VAApprover\",\n            ActionAt: Now(),\n            RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n        }\n    );\n\n    // 의뢰자 메일 발송\n    If(\n        !IsBlank(varSelectedRequest.RequesterEmail),\n        Office365Outlook.SendEmailV2(\n            varSelectedRequest.RequesterEmail,\n            \"[해석의뢰] 가상검증 반려 - \" & varSelectedRequest.RequestNo,\n            Concatenate(\n                \"<div style='font-family:Segoe UI;'>\",\n                \"<h3>해석 의뢰 반려 안내</h3>\",\n                \"<p>등록하신 해석 의뢰가 가상검증 승인 단계에서 반려되었습니다.</p>\",\n                \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n                \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n                \"<p><b>반려자:</b> \", varMyName, \"</p>\",\n                \"<p><b>반려사유:</b> \", Trim(txtVARejectReason.Text), \"</p>\",\n                \n                \"</div>\"\n            ),\n            {\n                IsHtml: true,\n                Importance: \"High\"\n            }\n        )\n    );\n\n    Refresh(Analysis_Request_DB);\n    Refresh(Analysis_Request_Log_DB);\n\n    Set(\n        varSelectedRequest,\n        LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\n    );\n\n    Set(varToastMessage, \"가상검증 반려가 완료되었습니다.\");\n    Set(varShowToast, true)\n)"
                               Text: ="반려"
                               Width: =86
                               X: =261
@@ -2695,116 +2387,13 @@ Screens:
                                 )
                               Font: =Font.Verdana
                               FontSize: =14
-                              OnSelect: |-
-                                =Patch(
-                                    Analysis_Request_DB,
-                                    varSelectedRequest,
-                                    {
-                                        Status: { Value: "InProgress" },
-                                        AssigneeEmail: Lower(drpAssignee.Selected.'e-mail')
-                                    }
-                                );
-
-                                Patch(
-                                    Analysis_Request_Log_DB,
-                                    Defaults(Analysis_Request_Log_DB),
-                                    {
-                                        Title: "VAApprove",
-                                        RequestIDKey: varSelectedRequest.RequestIDKey,
-                                        RequestNo: varSelectedRequest.RequestNo,
-                                        LogType: { Value: "VAApprove" },
-                                        LogMessage: varMyName & "님이 가상검증 승인을 완료하고 담당자를 배정했습니다.",
-                                        ActionByName: varMyName,
-                                        ActionByEmail: varMyEmail,
-                                        ActionRole: "VAApprover",
-                                        ActionAt: Now(),
-                                        RelatedRevisionNo: varSelectedRequest.LastRevisionNo
-                                    }
-                                );
-
-                                Patch(
-                                    Analysis_Request_Log_DB,
-                                    Defaults(Analysis_Request_Log_DB),
-                                    {
-                                        Title: "Assign",
-                                        RequestIDKey: varSelectedRequest.RequestIDKey,
-                                        RequestNo: varSelectedRequest.RequestNo,
-                                        LogType: { Value: "Assign" },
-                                        LogMessage: drpAssignee.Selected.이름_한글 & "님이 담당자로 배정되었습니다.",
-                                        ActionByName: varMyName,
-                                        ActionByEmail: varMyEmail,
-                                        ActionRole: "VAApprover",
-                                        ActionAt: Now(),
-                                        RelatedRevisionNo: varSelectedRequest.LastRevisionNo
-                                    }
-                                );
-
-                                // 담당자 메일 발송
-                                If(
-                                    !IsBlank(drpAssignee.Selected.'e-mail'),
-                                    Office365Outlook.SendEmailV2(
-                                        drpAssignee.Selected.'e-mail',
-                                        "[해석의뢰] 담당자 배정 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>해석 의뢰 담당자 배정 안내</h3>",
-                                            "<p>아래 해석 의뢰의 담당자로 배정되었습니다.</p>",
-                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>의뢰자:</b> ", varSelectedRequest.RequesterName, "</p>",
-                                            "<p><b>품명:</b> ", varSelectedRequest.ProductName, "</p>",
-                                            "<p><b>품번:</b> ", varSelectedRequest.PartNo, "</p>",
-                                            "<p>앱에서 진행률, 예상 완료일, 작업 메모를 입력하며 작업을 진행해 주세요.</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "High"
-                                        }
-                                    )
-                                );
-
-                                // 의뢰자 메일 발송
-                                If(
-                                    !IsBlank(varSelectedRequest.RequesterEmail),
-                                    Office365Outlook.SendEmailV2(
-                                        varSelectedRequest.RequesterEmail,
-                                        "[해석의뢰] 가상검증 승인 완료 및 담당자 배정 - " & varSelectedRequest.RequestNo,
-                                        Concatenate(
-                                            "<div style='font-family:Segoe UI;'>",
-                                            "<h3>가상검증 승인 완료</h3>",
-                                            "<p>등록하신 해석 의뢰가 가상검증 승인 완료되었고 담당자가 배정되었습니다.</p>",
-                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
-                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
-                                            "<p><b>담당자:</b> ", drpAssignee.Selected.이름_한글, "</p>",
-                                            "<p><b>상태:</b> 진행중</p>",
-                                            "<p><a href='", varAppUrl, "'>앱 바로가기</a></p>",
-                                            "</div>"
-                                        ),
-                                        {
-                                            IsHtml: true,
-                                            Importance: "Normal"
-                                        }
-                                    )
-                                );
-
-                                Refresh(Analysis_Request_DB);
-                                Refresh(Analysis_Request_Log_DB);
-
-                                Set(
-                                    varSelectedRequest,
-                                    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
-                                );
-
-                                Set(varToastMessage, "가상검증 승인 및 담당자 배정이 완료되었습니다.");
-                                Set(varShowToast, true);
+                              OnSelect: "=Patch(\n    Analysis_Request_DB,\n    varSelectedRequest,\n    {\n        Status: { Value: \"InProgress\" },\n        AssigneeEmail: Lower(drpAssignee.Selected.'e-mail')\n    }\n);\n\nPatch(\n    Analysis_Request_Log_DB,\n    Defaults(Analysis_Request_Log_DB),\n    {\n        Title: \"VAApprove\",\n        RequestIDKey: varSelectedRequest.RequestIDKey,\n        RequestNo: varSelectedRequest.RequestNo,\n        LogType: { Value: \"VAApprove\" },\n        LogMessage: varMyName & \"님이 가상검증 승인을 완료하고 담당자를 배정했습니다.\",\n        ActionByName: varMyName,\n        ActionByEmail: varMyEmail,\n        ActionRole: \"VAApprover\",\n        ActionAt: Now(),\n        RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n    }\n);\n\nPatch(\n    Analysis_Request_Log_DB,\n    Defaults(Analysis_Request_Log_DB),\n    {\n        Title: \"Assign\",\n        RequestIDKey: varSelectedRequest.RequestIDKey,\n        RequestNo: varSelectedRequest.RequestNo,\n        LogType: { Value: \"Assign\" },\n        LogMessage: drpAssignee.Selected.이름_한글 & \"님이 담당자로 배정되었습니다.\",\n        ActionByName: varMyName,\n        ActionByEmail: varMyEmail,\n        ActionRole: \"VAApprover\",\n        ActionAt: Now(),\n        RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n    }\n);\n\n// 담당자 메일 발송\nIf(\n    !IsBlank(drpAssignee.Selected.'e-mail'),\n    Office365Outlook.SendEmailV2(\n        drpAssignee.Selected.'e-mail',\n        \"[해석의뢰] 담당자 배정 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>해석 의뢰 담당자 배정 안내</h3>\",\n            \"<p>아래 해석 의뢰의 담당자로 배정되었습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>의뢰자:</b> \", varSelectedRequest.RequesterName, \"</p>\",\n            \"<p><b>품명:</b> \", varSelectedRequest.ProductName, \"</p>\",\n            \"<p><b>품번:</b> \", varSelectedRequest.PartNo, \"</p>\",\n            \"<p>앱에서 진행률, 예상 완료일, 작업 메모를 입력하며 작업을 진행해 주세요.</p>\",\n            \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"High\"\n        }\n    )\n);\n\n// 의뢰자 메일 발송\nIf(\n    !IsBlank(varSelectedRequest.RequesterEmail),\n    Office365Outlook.SendEmailV2(\n        varSelectedRequest.RequesterEmail,\n        \"[해석의뢰] 가상검증 승인 완료 및 담당자 배정 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>가상검증 승인 완료</h3>\",\n            \"<p>등록하신 해석 의뢰가 가상검증 승인 완료되었고 담당자가 배정되었습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>담당자:</b> \", drpAssignee.Selected.이름_한글, \"</p>\",\n            \"<p><b>상태:</b> 진행중</p>\",\n            \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"Normal\"\n        }\n    )\n);\n\nRefresh(Analysis_Request_DB);\nRefresh(Analysis_Request_Log_DB);\n\nSet(\n    varSelectedRequest,\n    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\n);\n\nSet(varToastMessage, \"가상검증 승인 및 담당자 배정이 완료되었습니다.\");\nSet(varShowToast, true);"
                               Text: ="승인"
                               Width: =86
                               X: =164
                               Y: =54
                         - drpAssignee:
-                            Control: ModernCombobox@1.1.0
+                            Control: ModernCombobox@1.1.1
                             Properties:
                               InputTextPlaceholder: ="담당자 지정"
                               ItemDisplayText: =ThisItem.이름_한글
@@ -2821,7 +2410,7 @@ Screens:
                               X: =29
                               Y: =54
                         - txtVARejectReason:
-                            Control: ModernTextInput@1.1.0
+                            Control: ModernTextInput@1.1.1
                             Properties:
                               Placeholder: ="반려 사유를 입력하세요."
                               Width: =561
@@ -3347,7 +2936,7 @@ Screens:
                                     Width: =30
                                     Y: =2
                               - txtAnalysisTitle:
-                                  Control: ModernTextInput@1.1.0
+                                  Control: ModernTextInput@1.1.1
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     Default: =Parent.Default
@@ -3410,7 +2999,7 @@ Screens:
                                     X: =24
                                     Y: =10
                               - txtProductName:
-                                  Control: ModernTextInput@1.1.0
+                                  Control: ModernTextInput@1.1.1
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     Default: =Parent.Default
@@ -3474,7 +3063,7 @@ Screens:
                                     X: =24
                                     Y: =10
                               - txtPartNo:
-                                  Control: ModernTextInput@1.1.0
+                                  Control: ModernTextInput@1.1.1
                                   Properties:
                                     AccessibleLabel: =Parent.DisplayName
                                     Default: =Parent.Default
