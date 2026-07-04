@@ -3,143 +3,7 @@ Screens:
     Properties:
       Fill: =
       LoadingSpinnerColor: =RGBA(98, 100, 167, 1)
-      OnVisible: |-
-        =
-
-        // =============================
-        // [1] 현재 로그인 사용자 정보
-        // =============================
-        Set(varMyEmail, Lower(User().Email));
-
-        Set(
-            varMyInfo,
-            LookUp(
-                UserInfo_DB,
-                Lower('e-mail') = varMyEmail
-            )
-        );
-
-        Set(
-            varMyName,
-            Coalesce(
-                varMyInfo.이름_한글,
-                Trim(
-                    If(
-                        IsBlank(Find("(", User().FullName)),
-                        Concatenate(
-                            Trim(Right(User().FullName, Len(User().FullName) - Find(" ", User().FullName))),
-                            Trim(Left(User().FullName, Find(" ", User().FullName)))
-                        ),
-                        Trim(Left(User().FullName, Find("(", User().FullName) - 1))
-                    )
-                )
-            )
-        );
-
-        Set(varMyDept, Coalesce(varMyInfo.부문, ""));
-        Set(varMyTeam, Coalesce(varMyInfo.팀, ""));
-        Set(varMyJobGrade, Coalesce(varMyInfo.직급2, ""));
-
-        // =============================
-        // [2] 역할 판단
-        // =============================
-        Set(
-            varIsTeamLeader,
-            varMyJobGrade in ["팀장", "소장", "이사"]
-        );
-
-        Set(
-            varIsVAApprover,
-            varMyEmail in [
-                Lower("yoonju.park@tym.world"),
-                Lower("donghyeon.gim@tym.world")
-            ]
-        );
-
-        // 관리자 판단 (개발자 전용 — 전체 목록 조회)
-        Set(
-            varIsAdmin,
-            varMyEmail in [Lower("eunseong.kim@tym.world")]
-        );
-
-        // =============================
-        // [3] 가상검증 승인자 고정값
-        // 이름은 저장하지 않고 이메일만 사용
-        // =============================
-        Set(varVAApprover1Email, Lower("yoonju.park@tym.world"));
-        Set(varVAApprover2Email, Lower("donghyeon.gim@tym.world") );
-
-        // =============================
-        // [4] 화면 상태 변수 초기화
-        // =============================
-        Set(varShowRequestPopup, false);
-        Set(varRequestMode, "View");
-        Set(varSelectedRequest, Defaults(Analysis_Request_DB));
-
-        // =============================
-        // [5] 필터 기본값
-        // =============================
-        Set(varPeriodFilter, Text(Year(Today())) & "년");
-
-        Set(varDateFrom, Date(Year(Today()), 1, 1));
-        Set(varDateTo, Date(Year(Today()) + 1, 1, 1));
-
-        // =============================
-        // [6] 토스트 / 팝업 상태
-        // =============================
-        Set(varShowToast, false);
-        Set(varToastMessage, "");
-        Set(varIncludeCompleted, true);   // ← 추가
-        Set(varIncludeRejected, true);    // ← 추가
-
-
-        // =============================
-        // [7] 데이터 새로고침
-        // =============================
-        Refresh(Analysis_Request_DB);
-        Refresh(Analysis_Request_Revision_DB);
-        Refresh(Analysis_Request_Log_DB);
-        Refresh(UserInfo_DB);
-
-
-        ClearCollect(
-            colPeriodOptions,
-
-            // 연도 목록 생성
-            ForAll(
-                SortByColumns(
-                    AddColumns(
-                        Distinct(
-                            Filter(
-                                Analysis_Request_DB,
-                                !IsBlank(SubmittedAt)
-                            ),
-                            Year(SubmittedAt)
-                        ),
-                        SortYear,
-                        Value
-                    ),
-                    "SortYear",
-                    SortOrder.Descending
-                ),
-                {Value: Text(Value) & "년"}
-            )
-        );
-
-        // 마지막에 "전체" 추가
-        Collect(
-            colPeriodOptions,
-            {Value: "전체"}
-        );
-
-        // varSelectedRequest 선택 시 보고서 레코드 조회
-        Set(
-            varReportRecord,
-            LookUp(
-                Analysis_Report_DB,
-                RequestIDKey = varSelectedRequest.RequestIDKey
-            )
-        );
+      OnVisible: "=\r\n\r\n// =============================\r\n// [1] 현재 로그인 사용자 정보\r\n// =============================\r\nSet(varMyEmail, Lower(User().Email));\r\n\r\nSet(\r\n    varMyInfo,\r\n    LookUp(\r\n        UserInfo_DB,\r\n        Lower('e-mail') = varMyEmail\r\n    )\r\n);\r\n\r\nSet(\r\n    varMyName,\r\n    Coalesce(\r\n        varMyInfo.이름_한글,\r\n        Trim(\r\n            If(\r\n                IsBlank(Find(\"(\", User().FullName)),\r\n                Concatenate(\r\n                    Trim(Right(User().FullName, Len(User().FullName) - Find(\" \", User().FullName))),\r\n                    Trim(Left(User().FullName, Find(\" \", User().FullName)))\r\n                ),\r\n                Trim(Left(User().FullName, Find(\"(\", User().FullName) - 1))\r\n            )\r\n        )\r\n    )\r\n);\r\n\r\nSet(varMyDept, Coalesce(varMyInfo.부문, \"\"));\r\nSet(varMyTeam, Coalesce(varMyInfo.팀, \"\"));\r\nSet(varMyJobGrade, Coalesce(varMyInfo.직급2, \"\"));\r\n\r\n// =============================\r\n// [2] 역할 판단\r\n// =============================\r\nSet(\r\n    varIsTeamLeader,\r\n    varMyJobGrade in [\"팀장\", \"소장\", \"이사\"]\r\n);\r\n\r\nSet(\r\n    varIsVAApprover,\r\n    varMyEmail in [\r\n        Lower(\"yoonju.park@tym.world\"),\r\n        Lower(\"donghyeon.gim@tym.world\")\r\n    ]\r\n);\r\n\r\n// 관리자 판단 (개발자 전용 — 전체 목록 조회)\r\nSet(\r\n    varIsAdmin,\r\n    varMyEmail in [Lower(\"eunseong.kim@tym.world\")] ||\r\n    varMyEmail in [Lower(\"rdplan@tym.world\")]\r\n);\r\n\r\n// 가상검증팀 소속 여부 (제목 인라인 수정 권한)\r\nSet(\r\n    varIsVATeamMember,\r\n    varMyTeam = \"가상검증팀\"\r\n);\r\n\r\n\r\n// =============================\r\n// [3] 가상검증 승인자 고정값\r\n// 이름은 저장하지 않고 이메일만 사용\r\n// =============================\r\nSet(varVAApprover1Email, Lower(\"yoonju.park@tym.world\"));\r\nSet(varVAApprover2Email, Lower(\"donghyeon.gim@tym.world\") );\r\n\r\n// 담당자 변경 권한자 (박윤주 팀장 전용)\r\nSet(\r\n    varIsAssigneeManager,\r\n   varMyEmail = Lower(\"yoonju.park@tym.world\")\r\n   \r\n);\r\n\r\n// =============================\r\n// [4] 화면 상태 변수 초기화\r\n// =============================\r\nSet(varShowRequestPopup, false);\r\nSet(varRequestMode, \"View\");\r\nSet(varSelectedRequest, Defaults(Analysis_Request_DB));\r\n\r\n// =============================\r\n// [5] 필터 기본값\r\n// =============================\r\nSet(varPeriodFilter, Text(Year(Today())) & \"년\");\r\n\r\nSet(varDateFrom, Date(Year(Today()), 1, 1));\r\nSet(varDateTo, Date(Year(Today()) + 1, 1, 1));\r\n\r\n// =============================\r\n// [6] 토스트 / 팝업 상태\r\n// =============================\r\nSet(varShowToast, false);\r\nSet(varToastMessage, \"\");\r\nSet(varIncludeCompleted, true);   // ← 추가\r\nSet(varIncludeRejected, true);    // ← 추가\r\nSet(varReportEditMode, false);\r\n\r\n// =============================\r\n// [7] 데이터 새로고침\r\n// =============================\r\nRefresh(Analysis_Request_DB);\r\nRefresh(Analysis_Request_Revision_DB);\r\nRefresh(Analysis_Request_Log_DB);\r\nRefresh(UserInfo_DB);\r\n\r\n\r\nClearCollect(\r\n    colPeriodOptions,\r\n\r\n    // 연도 목록 생성\r\n    ForAll(\r\n        SortByColumns(\r\n            AddColumns(\r\n                Distinct(\r\n                    Filter(\r\n                        Analysis_Request_DB,\r\n                        !IsBlank(SubmittedAt)\r\n                    ),\r\n                    Year(SubmittedAt)\r\n                ),\r\n                SortYear,\r\n                Value\r\n            ),\r\n            \"SortYear\",\r\n            SortOrder.Descending\r\n        ),\r\n        {Value: Text(Value) & \"년\"}\r\n    )\r\n);\r\n\r\n// 마지막에 \"전체\" 추가\r\nCollect(\r\n    colPeriodOptions,\r\n    {Value: \"전체\"}\r\n);\r\n\r\n// varSelectedRequest 선택 시 보고서 레코드 조회\r\nSet(\r\n    varReportRecord,\r\n    LookUp(\r\n        Analysis_Report_DB,\r\n        RequestIDKey = varSelectedRequest.RequestIDKey\r\n    )\r\n);"
     Children:
       - Container1:
           Control: GroupContainer@1.5.0
@@ -339,8 +203,9 @@ Screens:
                                       (varIncludeRejected && Status.Value = "Rejected")
                                   ),
 
-                                  // 관리자는 전체, 그 외는 관련자만
+                                  // 관리자 또는 가상검증팀 전원은 전체, 그 외는 관련자만
                                   varIsAdmin ||
+                                  varIsVATeamMember ||
                                   Lower(RequesterEmail) = Lower(varMyEmail) ||
                                   Lower(AssigneeEmail) = Lower(varMyEmail) ||
                                   Lower(RequesterLeaderEmail) = Lower(varMyEmail) ||
@@ -686,7 +551,7 @@ Screens:
             Fill: =RGBA(255, 255, 255, 1)
             Height: =637
             Width: =340
-            X: =657
+            X: =653
             Y: =100
           Children:
             - Inprogress_con:
@@ -732,8 +597,8 @@ Screens:
                         FocusedBorderThickness: =2
                         Items: |-
                           =If(
-                              // 관리자: 전체 조회
-                              varIsAdmin,
+                              // 관리자 또는 가상검증팀 전원: 전체 조회
+                              varIsAdmin || varIsVATeamMember,
                               SortByColumns(
                                   Filter(
                                       Analysis_Request_DB,
@@ -749,15 +614,18 @@ Screens:
                                   SortOrder.Descending
                               ),
 
-                              // 가상검증 승인자: 전체 InProgress 조회
+                              // 팀장: 본인 요청 + 본인 담당 + 팀원 진행 건
                               If(
-                                  varIsVAApprover,
+                                  varIsTeamLeader,
                                   SortByColumns(
                                       Filter(
                                           Analysis_Request_DB,
                                           SubmittedAt >= varDateFrom,
                                           SubmittedAt < varDateTo,
                                           Status.Value = "InProgress",
+                                          Lower(RequesterEmail) = Lower(varMyEmail) ||
+                                          Lower(AssigneeEmail) = Lower(varMyEmail) ||
+                                          Lower(RequesterLeaderEmail) = Lower(varMyEmail),
                                           IsBlank(txtSearch.Text) ||
                                           !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
                                           !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
@@ -767,44 +635,22 @@ Screens:
                                       SortOrder.Descending
                                   ),
 
-                                  // 팀장: 본인 요청 + 본인 담당 + 팀원 진행 건
-                                  If(
-                                      varIsTeamLeader,
-                                      SortByColumns(
-                                          Filter(
-                                              Analysis_Request_DB,
-                                              SubmittedAt >= varDateFrom,
-                                              SubmittedAt < varDateTo,
-                                              Status.Value = "InProgress",
-                                              Lower(RequesterEmail) = Lower(varMyEmail) ||
-                                              Lower(AssigneeEmail) = Lower(varMyEmail) ||
-                                              Lower(RequesterLeaderEmail) = Lower(varMyEmail),
-                                              IsBlank(txtSearch.Text) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
-                                          ),
-                                          "SubmittedAt",
-                                          SortOrder.Descending
+                                  // 일반 사용자: 본인 요청 + 본인 담당만
+                                  SortByColumns(
+                                      Filter(
+                                          Analysis_Request_DB,
+                                          SubmittedAt >= varDateFrom,
+                                          SubmittedAt < varDateTo,
+                                          Status.Value = "InProgress",
+                                          Lower(RequesterEmail) = Lower(varMyEmail) ||
+                                          Lower(AssigneeEmail) = Lower(varMyEmail),
+                                          IsBlank(txtSearch.Text) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
                                       ),
-
-                                      // 일반 사용자: 본인 요청 + 본인 담당만
-                                      SortByColumns(
-                                          Filter(
-                                              Analysis_Request_DB,
-                                              SubmittedAt >= varDateFrom,
-                                              SubmittedAt < varDateTo,
-                                              Status.Value = "InProgress",
-                                              Lower(RequesterEmail) = Lower(varMyEmail) ||
-                                              Lower(AssigneeEmail) = Lower(varMyEmail),
-                                              IsBlank(txtSearch.Text) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
-                                          ),
-                                          "SubmittedAt",
-                                          SortOrder.Descending
-                                      )
+                                      "SubmittedAt",
+                                      SortOrder.Descending
                                   )
                               )
                           )
@@ -1132,8 +978,8 @@ Screens:
                         FocusedBorderThickness: =2
                         Items: |-
                           =If(
-                              // 관리자: 전체 조회
-                              varIsAdmin,
+                              // 관리자 또는 가상검증팀 전원: 전체 조회
+                              varIsAdmin || varIsVATeamMember,
                               SortByColumns(
                                   Filter(
                                       Analysis_Request_DB,
@@ -1149,15 +995,20 @@ Screens:
                                   SortOrder.Descending
                               ),
 
-                              // 가상검증 승인자: 가상검증 승인대기 건만
+                              // 팀장: 본인 요청 + 팀원 승인대기 건
                               If(
-                                  varIsVAApprover,
+                                  varIsTeamLeader,
                                   SortByColumns(
                                       Filter(
                                           Analysis_Request_DB,
                                           SubmittedAt >= varDateFrom,
                                           SubmittedAt < varDateTo,
-                                          Status.Value = "PendingVAApproval",
+                                          Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
+                                          Lower(RequesterEmail) = Lower(varMyEmail) ||
+                                          (
+                                              Lower(RequesterLeaderEmail) = Lower(varMyEmail) &&
+                                              Status.Value = "PendingTeamLeader"
+                                          ),
                                           IsBlank(txtSearch.Text) ||
                                           !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
                                           !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
@@ -1167,45 +1018,21 @@ Screens:
                                       SortOrder.Descending
                                   ),
 
-                                  // 팀장: 본인 요청 + 팀원 승인대기 건
-                                  If(
-                                      varIsTeamLeader,
-                                      SortByColumns(
-                                          Filter(
-                                              Analysis_Request_DB,
-                                              SubmittedAt >= varDateFrom,
-                                              SubmittedAt < varDateTo,
-                                              Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
-                                              Lower(RequesterEmail) = Lower(varMyEmail) ||
-                                              (
-                                                  Lower(RequesterLeaderEmail) = Lower(varMyEmail) &&
-                                                  Status.Value = "PendingTeamLeader"
-                                              ),
-                                              IsBlank(txtSearch.Text) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
-                                          ),
-                                          "SubmittedAt",
-                                          SortOrder.Descending
+                                  // 일반 사용자: 본인 요청만
+                                  SortByColumns(
+                                      Filter(
+                                          Analysis_Request_DB,
+                                          SubmittedAt >= varDateFrom,
+                                          SubmittedAt < varDateTo,
+                                          Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
+                                          Lower(RequesterEmail) = Lower(varMyEmail),
+                                          IsBlank(txtSearch.Text) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
+                                          !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
                                       ),
-
-                                      // 일반 사용자: 본인 요청만
-                                      SortByColumns(
-                                          Filter(
-                                              Analysis_Request_DB,
-                                              SubmittedAt >= varDateFrom,
-                                              SubmittedAt < varDateTo,
-                                              Status.Value in ["PendingTeamLeader", "PendingVAApproval"],
-                                              Lower(RequesterEmail) = Lower(varMyEmail),
-                                              IsBlank(txtSearch.Text) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(제목))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequesterName))) ||
-                                              !IsBlank(Find(Lower(txtSearch.Text), Lower(RequestNo)))
-                                          ),
-                                          "SubmittedAt",
-                                          SortOrder.Descending
-                                      )
+                                      "SubmittedAt",
+                                      SortOrder.Descending
                                   )
                               )
                           )
@@ -2314,11 +2141,15 @@ Screens:
                         BorderThickness: =1
                         Fill: =RGBA(255, 255, 255, 1)
                         Height: =100
-                        Visible: |+
-                          =varSelectedRequest.Status.Value = "PendingVAApproval" &&
-                          varIsVAApprover
-
-
+                        Visible: |
+                          =(
+                              varSelectedRequest.Status.Value = "PendingVAApproval" &&
+                              varIsVAApprover
+                          ) ||
+                          (
+                              varSelectedRequest.Status.Value = "InProgress" &&
+                              varIsAssigneeManager
+                          )
                         Width: =941
                         X: =10
                         Y: =566
@@ -2356,7 +2187,12 @@ Screens:
                               Font: =Font.Verdana
                               Height: =33
                               Size: =11
-                              Text: ="요청 내용을 확인한 뒤 승인 또는 반려를 진행하세요."
+                              Text: |-
+                                =If(
+                                    varSelectedRequest.Status.Value = "InProgress",
+                                    "담당자를 변경할 수 있습니다.",
+                                    "요청 내용을 확인한 뒤 승인 또는 반려를 진행하세요."
+                                )
                               Width: =343
                               X: =118
                               Y: =8
@@ -2369,6 +2205,7 @@ Screens:
                               FontSize: =14
                               OnSelect: "=If(\n    IsBlank(Trim(txtVARejectReason.Text)),\n    Notify(\"반려 사유를 입력해 주세요.\", NotificationType.Warning),\n\n    Patch(\n        Analysis_Request_DB,\n        varSelectedRequest,\n        {\n            Status: { Value: \"Rejected\" },\n            RejectedAt: Now(),\n            RejectReason: Trim(txtVARejectReason.Text)\n        }\n    );\n\n    Patch(\n        Analysis_Request_Log_DB,\n        Defaults(Analysis_Request_Log_DB),\n        {\n            Title: \"VAReject\",\n            RequestIDKey: varSelectedRequest.RequestIDKey,\n            RequestNo: varSelectedRequest.RequestNo,\n            LogType: { Value: \"VAReject\" },\n            LogMessage: varMyName & \"님이 가상검증 반려했습니다. 사유: \" & Trim(txtVARejectReason.Text),\n            ActionByName: varMyName,\n            ActionByEmail: varMyEmail,\n            ActionRole: \"VAApprover\",\n            ActionAt: Now(),\n            RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n        }\n    );\n\n    // 의뢰자 메일 발송\n    If(\n        !IsBlank(varSelectedRequest.RequesterEmail),\n        Office365Outlook.SendEmailV2(\n            varSelectedRequest.RequesterEmail,\n            \"[해석의뢰] 가상검증 반려 - \" & varSelectedRequest.RequestNo,\n            Concatenate(\n                \"<div style='font-family:Segoe UI;'>\",\n                \"<h3>해석 의뢰 반려 안내</h3>\",\n                \"<p>등록하신 해석 의뢰가 가상검증 승인 단계에서 반려되었습니다.</p>\",\n                \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n                \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n                \"<p><b>반려자:</b> \", varMyName, \"</p>\",\n                \"<p><b>반려사유:</b> \", Trim(txtVARejectReason.Text), \"</p>\",\n                \n                \"</div>\"\n            ),\n            {\n                IsHtml: true,\n                Importance: \"High\"\n            }\n        )\n    );\n\n    Refresh(Analysis_Request_DB);\n    Refresh(Analysis_Request_Log_DB);\n\n    Set(\n        varSelectedRequest,\n        LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\n    );\n\n    Set(varToastMessage, \"가상검증 반려가 완료되었습니다.\");\n    Set(varShowToast, true)\n)"
                               Text: ="반려"
+                              Visible: =varSelectedRequest.Status.Value = "PendingVAApproval"
                               Width: =86
                               X: =261
                               Y: =54
@@ -2389,12 +2226,24 @@ Screens:
                               FontSize: =14
                               OnSelect: "=Patch(\n    Analysis_Request_DB,\n    varSelectedRequest,\n    {\n        Status: { Value: \"InProgress\" },\n        AssigneeEmail: Lower(drpAssignee.Selected.'e-mail')\n    }\n);\n\nPatch(\n    Analysis_Request_Log_DB,\n    Defaults(Analysis_Request_Log_DB),\n    {\n        Title: \"VAApprove\",\n        RequestIDKey: varSelectedRequest.RequestIDKey,\n        RequestNo: varSelectedRequest.RequestNo,\n        LogType: { Value: \"VAApprove\" },\n        LogMessage: varMyName & \"님이 가상검증 승인을 완료하고 담당자를 배정했습니다.\",\n        ActionByName: varMyName,\n        ActionByEmail: varMyEmail,\n        ActionRole: \"VAApprover\",\n        ActionAt: Now(),\n        RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n    }\n);\n\nPatch(\n    Analysis_Request_Log_DB,\n    Defaults(Analysis_Request_Log_DB),\n    {\n        Title: \"Assign\",\n        RequestIDKey: varSelectedRequest.RequestIDKey,\n        RequestNo: varSelectedRequest.RequestNo,\n        LogType: { Value: \"Assign\" },\n        LogMessage: drpAssignee.Selected.이름_한글 & \"님이 담당자로 배정되었습니다.\",\n        ActionByName: varMyName,\n        ActionByEmail: varMyEmail,\n        ActionRole: \"VAApprover\",\n        ActionAt: Now(),\n        RelatedRevisionNo: varSelectedRequest.LastRevisionNo\n    }\n);\n\n// 담당자 메일 발송\nIf(\n    !IsBlank(drpAssignee.Selected.'e-mail'),\n    Office365Outlook.SendEmailV2(\n        drpAssignee.Selected.'e-mail',\n        \"[해석의뢰] 담당자 배정 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>해석 의뢰 담당자 배정 안내</h3>\",\n            \"<p>아래 해석 의뢰의 담당자로 배정되었습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>의뢰자:</b> \", varSelectedRequest.RequesterName, \"</p>\",\n            \"<p><b>품명:</b> \", varSelectedRequest.ProductName, \"</p>\",\n            \"<p><b>품번:</b> \", varSelectedRequest.PartNo, \"</p>\",\n            \"<p>앱에서 진행률, 예상 완료일, 작업 메모를 입력하며 작업을 진행해 주세요.</p>\",\n            \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"High\"\n        }\n    )\n);\n\n// 의뢰자 메일 발송\nIf(\n    !IsBlank(varSelectedRequest.RequesterEmail),\n    Office365Outlook.SendEmailV2(\n        varSelectedRequest.RequesterEmail,\n        \"[해석의뢰] 가상검증 승인 완료 및 담당자 배정 - \" & varSelectedRequest.RequestNo,\n        Concatenate(\n            \"<div style='font-family:Segoe UI;'>\",\n            \"<h3>가상검증 승인 완료</h3>\",\n            \"<p>등록하신 해석 의뢰가 가상검증 승인 완료되었고 담당자가 배정되었습니다.</p>\",\n            \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\n            \"<p><b>해석명:</b> \", varSelectedRequest.제목, \"</p>\",\n            \"<p><b>담당자:</b> \", drpAssignee.Selected.이름_한글, \"</p>\",\n            \"<p><b>상태:</b> 진행중</p>\",\n            \n            \"</div>\"\n        ),\n        {\n            IsHtml: true,\n            Importance: \"Normal\"\n        }\n    )\n);\n\nRefresh(Analysis_Request_DB);\nRefresh(Analysis_Request_Log_DB);\n\nSet(\n    varSelectedRequest,\n    LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)\n);\n\nSet(varToastMessage, \"가상검증 승인 및 담당자 배정이 완료되었습니다.\");\nSet(varShowToast, true);"
                               Text: ="승인"
+                              Visible: =varSelectedRequest.Status.Value = "PendingVAApproval"
                               Width: =86
                               X: =164
                               Y: =54
                         - drpAssignee:
                             Control: ModernCombobox@1.1.1
                             Properties:
+                              DefaultSelectedItems: |-
+                                =If(
+                                    varSelectedRequest.Status.Value = "InProgress",
+                                    [
+                                        LookUp(
+                                            UserInfo_DB,
+                                            Lower('e-mail') = Lower(varSelectedRequest.AssigneeEmail)
+                                        )
+                                    ],
+                                    Blank()
+                                )
                               InputTextPlaceholder: ="담당자 지정"
                               ItemDisplayText: =ThisItem.이름_한글
                               Items: |-
@@ -2413,8 +2262,108 @@ Screens:
                             Control: ModernTextInput@1.1.1
                             Properties:
                               Placeholder: ="반려 사유를 입력하세요."
+                              Visible: =varSelectedRequest.Status.Value = "PendingVAApproval"
                               Width: =561
                               X: =357
+                              Y: =54
+                        - btnChangeAssignee:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Appearance: =ButtonAppearance.Secondary
+                              BorderStyle: =BorderStyle.Solid
+                              DisplayMode: |-
+                                =If(
+                                          IsBlank(drpAssignee.Selected) || IsBlank(drpAssignee.Selected.'e-mail'),
+                                          DisplayMode.Disabled,
+                                          DisplayMode.Edit
+                                      )
+                              Font: =Font.Verdana
+                              OnSelect: |-
+                                =// 선택된 담당자 정보를 변수로 먼저 고정 (화면 갱신에 영향 안 받도록)
+                                Set(varOldAssigneeEmail, varSelectedRequest.AssigneeEmail);
+                                Set(varOldAssigneeName, LookUp(UserInfo_DB, Lower('e-mail') = Lower(varOldAssigneeEmail)).이름_한글);
+                                Set(varNewAssigneeEmail, Lower(drpAssignee.Selected.'e-mail'));
+                                Set(varNewAssigneeName, drpAssignee.Selected.이름_한글);
+
+                                If(
+                                    Lower(varOldAssigneeEmail) = varNewAssigneeEmail,
+                                    Notify("현재 담당자와 동일합니다.", NotificationType.Warning),
+
+                                    // 담당자 변경 Patch
+                                    Patch(
+                                        Analysis_Request_DB,
+                                        varSelectedRequest,
+                                        {
+                                            AssigneeEmail: varNewAssigneeEmail
+                                        }
+                                    );
+
+                                    // 로그 기록
+                                    Patch(
+                                        Analysis_Request_Log_DB,
+                                        Defaults(Analysis_Request_Log_DB),
+                                        {
+                                            Title: "AssigneeChanged",
+                                            RequestIDKey: varSelectedRequest.RequestIDKey,
+                                            RequestNo: varSelectedRequest.RequestNo,
+                                            LogType: { Value: "AssigneeChanged" },
+                                            LogMessage: varMyName & "님이 담당자를 " & Coalesce(varOldAssigneeName, "-") & "에서 " & varNewAssigneeName & "(으)로 변경했습니다.",
+                                            ActionByName: varMyName,
+                                            ActionByEmail: varMyEmail,
+                                            ActionRole: "VAApprover",
+                                            ActionAt: Now(),
+                                            RelatedRevisionNo: varSelectedRequest.LastRevisionNo
+                                        }
+                                    );
+
+                                    // 새 담당자에게 메일
+                                    Office365Outlook.SendEmailV2(
+                                        varNewAssigneeEmail,
+                                        "[해석의뢰] 담당자 변경 안내 - " & varSelectedRequest.RequestNo,
+                                        Concatenate(
+                                            "<div style='font-family:Segoe UI;'>",
+                                            "<h3>담당자 변경 안내</h3>",
+                                            "<p>아래 해석 의뢰의 담당자로 새로 지정되었습니다.</p>",
+                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
+                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
+                                            "<p><b>의뢰자:</b> ", varSelectedRequest.RequesterName, "</p>",
+                                            "<p>앱에서 진행 상황을 확인해 주세요.</p>",
+                                            "</div>"
+                                        ),
+                                        { IsHtml: true, Importance: "High" }
+                                    );
+
+                                    // 의뢰자에게 메일
+                                    If(
+                                        !IsBlank(varSelectedRequest.RequesterEmail),
+                                        Office365Outlook.SendEmailV2(
+                                            varSelectedRequest.RequesterEmail,
+                                            "[해석의뢰] 담당자 변경 안내 - " & varSelectedRequest.RequestNo,
+                                            Concatenate(
+                                                "<div style='font-family:Segoe UI;'>",
+                                                "<h3>담당자 변경 안내</h3>",
+                                                "<p>등록하신 해석 의뢰의 담당자가 변경되었습니다.</p>",
+                                                "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
+                                                "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
+                                                "<p><b>새 담당자:</b> ", varNewAssigneeName, "</p>",
+                                                "</div>"
+                                            ),
+                                            { IsHtml: true, Importance: "Normal" }
+                                        )
+                                    );
+
+                                    Refresh(Analysis_Request_DB);
+                                    Refresh(Analysis_Request_Log_DB);
+
+                                    Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
+
+                                    Set(varToastMessage, "담당자가 변경되었습니다.");
+                                    Set(varShowToast, true)
+                                )
+                              Size: =14
+                              Text: ="담당자 변경"
+                              Width: =110
+                              X: =164
                               Y: =54
                   - Container3:
                       Control: GroupContainer@1.5.0
@@ -2676,8 +2625,39 @@ Screens:
                                     Office365Outlook.SendEmailV2(
                                         varSelectedRequest.RequesterEmail,
                                         "[해석의뢰] 작업 완료 - " & varSelectedRequest.RequestNo,
-                                        "<div>작업 완료되었습니다.</div>",
-                                        { IsHtml: true }
+                                        Concatenate(
+                                            "<div style='font-family:Segoe UI;'>",
+                                            "<h3>작업 완료 안내</h3>",
+                                            "<p>등록하신 해석 의뢰의 작업이 완료되었습니다.</p>",
+                                            "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
+                                            "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
+                                            "<p><b>담당자:</b> ", varMyName, "</p>",
+                                            "</div>"
+                                        ),
+                                        { IsHtml: true, Importance: "Normal" }
+                                    )
+                                );
+
+                                // 가상검증팀 전원 메일
+                                ForAll(
+                                    Filter(UserInfo_DB, 팀 = "가상검증팀"),
+                                    If(
+                                        !IsBlank('e-mail'),
+                                        Office365Outlook.SendEmailV2(
+                                            'e-mail',
+                                            "[해석의뢰] 팀 완료 알림 - " & varSelectedRequest.RequestNo,
+                                            Concatenate(
+                                                "<div style='font-family:Segoe UI;'>",
+                                                "<h3>가상검증팀 완료 알림</h3>",
+                                                "<p>가상검증팀에서 진행하던 해석 의뢰가 완료되었습니다.</p>",
+                                                "<p><b>의뢰번호:</b> ", varSelectedRequest.RequestNo, "</p>",
+                                                "<p><b>해석명:</b> ", varSelectedRequest.제목, "</p>",
+                                                "<p><b>의뢰자:</b> ", varSelectedRequest.RequesterName, "</p>",
+                                                "<p><b>담당자:</b> ", varMyName, "</p>",
+                                                "</div>"
+                                            ),
+                                            { IsHtml: true, Importance: "Normal" }
+                                        )
                                     )
                                 );
 
@@ -2797,6 +2777,7 @@ Screens:
                               Height: =63
                               Item: =varReportRecord
                               NumberOfColumns: =1
+                              Visible: =!varReportEditMode
                               Width: =891
                               X: =28
                               Y: =51
@@ -2850,6 +2831,150 @@ Screens:
                                           PressedFill: =RGBA(237, 235, 233, 1)
                                           Size: =8
                                           Width: =891
+                        - frmReportEdit:
+                            Control: Form@2.4.4
+                            Variant: Modern
+                            Layout: Vertical
+                            Properties:
+                              BorderColor: =RGBA(243, 242, 241, 1)
+                              DataSource: =Analysis_Report_DB
+                              Height: =132
+                              Item: =varReportRecord
+                              OnSuccess: |-
+                                =Refresh(Analysis_Report_DB);
+
+                                      Set(
+                                          varReportRecord,
+                                          LookUp(
+                                              Analysis_Report_DB,
+                                              RequestIDKey = varSelectedRequest.RequestIDKey
+                                          )
+                                      );
+
+                                      Patch(
+                                          Analysis_Request_DB,
+                                          varSelectedRequest,
+                                          { FinalReportAttached: CountRows(varReportRecord.'첨부 파일') > 0 }
+                                      );
+
+                                      Refresh(Analysis_Request_DB);
+
+                                      Set(
+                                          varSelectedRequest,
+                                          LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID)
+                                      );
+
+                                      Set(varReportEditMode, false);
+                                      Set(varToastMessage, "해석 보고서가 수정되었습니다.");
+                                      Set(varShowToast, true)
+                              Visible: =varReportEditMode
+                              Width: =927
+                              X: =13
+                            Children:
+                              - 첨부 파일_DataCard5:
+                                  Control: TypedDataCard@1.0.7
+                                  Variant: ModernAttachmentsEdit
+                                  Properties:
+                                    BorderColor: =RGBA(243, 242, 241, 1)
+                                    DataField: ="{Attachments}"
+                                    Default: =ThisItem.'첨부 파일'
+                                    DisplayName: =DataSourceInfo([@Analysis_Report_DB],DataSourceInfo.DisplayName,'{Attachments}')
+                                    Height: =127
+                                    Required: =false
+                                    Update: =DataCardValue4.Attachments
+                                    Width: =930
+                                    X: =0
+                                    Y: =0
+                                  Children:
+                                    - DataCardValue4:
+                                        Control: Attachments@2.3.0
+                                        MetadataKey: FieldValue
+                                        Properties:
+                                          BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                                          BorderStyle: =BorderStyle.None
+                                          BorderThickness: =If(IsBlank(Parent.Error), 0, 1)
+                                          Color: =RGBA(37, 36, 35, 1)
+                                          DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                                          DisabledColor: =RGBA(200, 198, 196, 1)
+                                          DisabledFill: =RGBA(243, 242, 241, 1)
+                                          DisplayMode: =Parent.DisplayMode
+                                          Fill: =RGBA(243, 242, 241, 1)
+                                          FocusedBorderThickness: =2
+                                          Font: =Font.Verdana
+                                          Height: =78
+                                          HoverColor: =RGBA(37, 36, 35, 1)
+                                          HoverFill: =RGBA(243, 242, 241, 1)
+                                          ItemColor: =RGBA(0, 0, 0, 1)
+                                          ItemFill: =RGBA(237, 235, 233, 1)
+                                          ItemHoverColor: =RGBA(37, 36, 35, 1)
+                                          ItemHoverFill: =RGBA(243, 242, 241, 1)
+                                          ItemSpacing: =12
+                                          Items: =Parent.Default
+                                          NoAttachmentsColor: =RGBA(200, 198, 196, 1)
+                                          PaddingBottom: =5
+                                          PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
+                                          PaddingRight: =5
+                                          PaddingTop: =5
+                                          PressedColor: =RGBA(255, 255, 255, 1)
+                                          PressedFill: =RGBA(237, 235, 233, 1)
+                                          Size: =9
+                                          Tooltip: =Parent.DisplayName
+                                          Width: =890
+                                          X: =16
+                                          Y: =49
+                        - btnReportSaveEdit:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Appearance: =ButtonAppearance.Secondary
+                              BorderColor: =RGBA(0, 0, 0, 1)
+                              BorderStyle: =BorderStyle.Solid
+                              BorderThickness: =1
+                              Height: =26
+                              OnSelect: =SubmitForm(frmReportEdit)
+                              Text: ="저장"
+                              Visible: =varReportEditMode
+                              Width: =70
+                              X: =760
+                              Y: =8
+                        - btnReportModify:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Appearance: =ButtonAppearance.Secondary
+                              BorderColor: =RGBA(0, 0, 0, 1)
+                              BorderStyle: =BorderStyle.Solid
+                              BorderThickness: =1
+                              Height: =26
+                              OnSelect: =Set(varReportEditMode, true)
+                              Text: ="수정"
+                              Visible: =varIsVATeamMember && !varReportEditMode
+                              Width: =70
+                              X: =760
+                              Y: =8
+                        - btnReportCancelEdit:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Appearance: =ButtonAppearance.Secondary
+                              BorderColor: =RGBA(0, 0, 0, 1)
+                              BorderStyle: =BorderStyle.Solid
+                              BorderThickness: =1
+                              Font: =Font.Verdana
+                              Height: =26
+                              OnSelect: |-
+                                =ResetForm(frmReportEdit);
+                                Refresh(Analysis_Report_DB);
+                                Set(
+                                    varReportRecord,
+                                    LookUp(
+                                        Analysis_Report_DB,
+                                        RequestIDKey = varSelectedRequest.RequestIDKey
+                                    )
+                                );
+                                Set(varReportEditMode, false)
+                              Text: ="취소"
+                              Visible: =varReportEditMode
+                              Width: =70
+                              X: =836
+                              Y: =8
             - confrmRequest:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -2868,7 +2993,7 @@ Screens:
                         DataSource: =Analysis_Request_DB
                         Height: =590
                         Item: =varSelectedRequest
-                        OnSuccess: "=// =============================\r\n// 현재 저장 모드 백업\r\n// =============================\r\nSet(varSavedRequestMode, varRequestMode);\r\n\r\n// =============================\r\n// 신규 등록 후 시스템 컬럼 자동 세팅\r\n// =============================\r\nIf(\r\n    varSavedRequestMode = \"New\",\r\n\r\n    Set(\r\n        varNewRequestNo,\r\n        \"CAE\" &\r\n        Text(Year(Now()) - 2000, \"00\") &\r\n        Text(\r\n            CountRows(\r\n                Filter(\r\n                    Analysis_Request_DB,\r\n                    Year(SubmittedAt) = Year(Now())\r\n                )\r\n            ) + 21,\r\n            \"000\"\r\n        )\r\n    );\r\n\r\n    Set(varNewRequestIDKey, Text(GUID()));\r\n\r\n    Set(\r\n        varRequesterLeaderInfo,\r\n        LookUp(\r\n            UserInfo_DB,\r\n            팀 = varMyTeam &&\r\n            직급2 = \"팀장\"\r\n        )\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_DB,\r\n        Self.LastSubmit,\r\n        {\r\n            RequestNo:              varNewRequestNo,\r\n            RequestIDKey:           varNewRequestIDKey,\r\n            DepartmentName:         varMyDept,\r\n            RequesterTeam:          varMyTeam,\r\n            RequesterName:          varMyName,\r\n            RequesterEmail:         varMyEmail,\r\n            RequesterLeaderEmail:   Coalesce(varRequesterLeaderInfo.'e-mail', \"\"),\r\n            VAApprover1Email:       varVAApprover1Email,\r\n            VAApprover2Email:       varVAApprover2Email,\r\n            Status:                 { Value: \"PendingTeamLeader\" },\r\n            AssigneeEmail:          Blank(),\r\n            ProgressPct:            0,\r\n            LastRevisionNo:         1,    // ← Rev.1 생성되므로 1로 시작\r\n            AssigneeLastReadRevisionNo: 0,\r\n            HasUnreadRevision:      false,\r\n            FinalReportAttached:    false,\r\n            SubmittedAt:            Now(),\r\n            LastRequesterModifiedAt: Now(),\r\n            IsActive:               true\r\n        }\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_Log_DB,\r\n        Defaults(Analysis_Request_Log_DB),\r\n        {\r\n            Title:              \"Submit\",\r\n            RequestIDKey:       varNewRequestIDKey,\r\n            RequestNo:          varNewRequestNo,\r\n            LogType:            { Value: \"Submit\" },\r\n            LogMessage:         varMyName & \"님이 해석 의뢰를 등록했습니다.\",\r\n            ActionByName:       varMyName,\r\n            ActionByEmail:      varMyEmail,\r\n            ActionRole:         \"Requester\",\r\n            ActionAt:           Now(),\r\n            RelatedRevisionNo:  1\r\n        }\r\n    );\r\n\r\n    If(\r\n        !IsBlank(varRequesterLeaderInfo.'e-mail'),\r\n        Office365Outlook.SendEmailV2(\r\n            varRequesterLeaderInfo.'e-mail',\r\n            \"[해석의뢰] 팀장 승인 요청 - \" & varNewRequestNo,\r\n            Concatenate(\r\n                \"<div style='font-family:Segoe UI;'>\",\r\n                \"<h3>해석 의뢰 승인 요청</h3>\",\r\n                \"<p>아래 해석 의뢰에 대한 팀장 승인이 필요합니다.</p>\",\r\n                \"<p><b>의뢰자:</b> \", varMyName, \"</p>\",\r\n                \"<p><b>의뢰번호:</b> \", varNewRequestNo, \"</p>\",\r\n                \"<p><b>해석명:</b> \", varSnapshotTitle, \"</p>\",\r\n                \"<p><b>품명:</b> \", varSnapshotProduct, \"</p>\",\r\n                \"<p><b>품번:</b> \", varSnapshotPart, \"</p>\",\r\n                \"<p><a href='\", varAppUrl, \"'>앱 바로가기</a></p>\",\r\n                \"</div>\"\r\n            ),\r\n            { IsHtml: true, Importance: \"High\" }\r\n        )\r\n    )\r\n);\r\n\r\n// =============================\r\n// 수정 후 후처리\r\n// =============================\r\nIf(\r\n    varSavedRequestMode = \"Edit\",\r\n\r\n    Patch(\r\n        Analysis_Request_DB,\r\n        Self.LastSubmit,\r\n        {\r\n            LastRevisionNo:          varNewRevisionNo,\r\n            LastRequesterModifiedAt: Now(),\r\n            HasUnreadRevision:       true\r\n        }\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_Log_DB,\r\n        Defaults(Analysis_Request_Log_DB),\r\n        {\r\n            Title:              \"Modify\",\r\n            RequestIDKey:       varSelectedRequest.RequestIDKey,\r\n            RequestNo:          varSelectedRequest.RequestNo,\r\n            LogType:            { Value: \"Modify\" },\r\n            LogMessage:         varMyName & \"님이 해석 의뢰 내용을 수정했습니다.\",\r\n            ActionByName:       varMyName,\r\n            ActionByEmail:      varMyEmail,\r\n            ActionRole:         \"Requester\",\r\n            ActionAt:           Now(),\r\n            RelatedRevisionNo:  varNewRevisionNo\r\n        }\r\n    );\r\n\r\n    If(\r\n        !IsBlank(varSelectedRequest.AssigneeEmail),\r\n        Office365Outlook.SendEmailV2(\r\n            varSelectedRequest.AssigneeEmail,\r\n            \"[해석의뢰] 수정본 도착 - \" & varSelectedRequest.RequestNo,\r\n            Concatenate(\r\n                \"<div style='font-family:Segoe UI;'>\",\r\n                \"<h3>해석 의뢰 수정 알림</h3>\",\r\n                \"<p>의뢰자가 해석 의뢰 내용을 수정했습니다.</p>\",\r\n                \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\r\n                \"<p><b>해석명:</b> \", varSnapshotTitle, \"</p>\",\r\n                \"<p><b>의뢰자:</b> \", varMyName, \"</p>\",\r\n                \"<p>앱에서 최신 내용을 확인해 주세요.</p>\",\r\n                \"<p><a href='\", varAppUrl, \"'>앱 바로가기</a></p>\",\r\n                \"</div>\"\r\n            ),\r\n            { IsHtml: true, Importance: \"High\" }\r\n        )\r\n    )\r\n);\r\n\r\n// =============================\r\n// 공통: Revision 첨부 폼 제출\r\n// (Refresh/팝업닫기/토스트는 frmRevisionAttach.OnSuccess에서 처리)\r\n// =============================\r\nSubmitForm(frmRevisionAttach)                                                                                                                                                                                                                                 "
+                        OnSuccess: "=// =============================\r\n// 현재 저장 모드 백업\r\n// =============================\r\nSet(varSavedRequestMode, varRequestMode);\r\n\r\n// =============================\r\n// 신규 등록 후 시스템 컬럼 자동 세팅\r\n// =============================\r\nIf(\r\n    varSavedRequestMode = \"New\",\r\n\r\n    Set(\r\n        varNewRequestNo,\r\n        \"CAE\" &\r\n        Text(Year(Now()) - 2000, \"00\") &\r\n        Text(\r\n            CountRows(\r\n                Filter(\r\n                    Analysis_Request_DB,\r\n                    Year(SubmittedAt) = Year(Now())\r\n                )\r\n            ) + 33,\r\n            \"000\"\r\n        )\r\n    );\r\n\r\n    Set(varNewRequestIDKey, Text(GUID()));\r\n\r\n    Set(\r\n        varRequesterLeaderInfo,\r\n        LookUp(\r\n            UserInfo_DB,\r\n            팀 = varMyTeam &&\r\n            직급2 = \"팀장\"\r\n        )\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_DB,\r\n        Self.LastSubmit,\r\n        {\r\n            RequestNo:              varNewRequestNo,\r\n            RequestIDKey:           varNewRequestIDKey,\r\n            DepartmentName:         varMyDept,\r\n            RequesterTeam:          varMyTeam,\r\n            RequesterName:          varMyName,\r\n            RequesterEmail:         varMyEmail,\r\n            RequesterLeaderEmail:   Coalesce(varRequesterLeaderInfo.'e-mail', \"\"),\r\n            VAApprover1Email:       varVAApprover1Email,\r\n            VAApprover2Email:       varVAApprover2Email,\r\n            Status:                 { Value: \"PendingTeamLeader\" },\r\n            AssigneeEmail:          Blank(),\r\n            ProgressPct:            0,\r\n            LastRevisionNo:         1,    // ← Rev.1 생성되므로 1로 시작\r\n            AssigneeLastReadRevisionNo: 0,\r\n            HasUnreadRevision:      false,\r\n            FinalReportAttached:    false,\r\n            SubmittedAt:            Now(),\r\n            LastRequesterModifiedAt: Now(),\r\n            IsActive:               true\r\n        }\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_Log_DB,\r\n        Defaults(Analysis_Request_Log_DB),\r\n        {\r\n            Title:              \"Submit\",\r\n            RequestIDKey:       varNewRequestIDKey,\r\n            RequestNo:          varNewRequestNo,\r\n            LogType:            { Value: \"Submit\" },\r\n            LogMessage:         varMyName & \"님이 해석 의뢰를 등록했습니다.\",\r\n            ActionByName:       varMyName,\r\n            ActionByEmail:      varMyEmail,\r\n            ActionRole:         \"Requester\",\r\n            ActionAt:           Now(),\r\n            RelatedRevisionNo:  1\r\n        }\r\n    );\r\n\r\n    If(\r\n        !IsBlank(varRequesterLeaderInfo.'e-mail'),\r\n        Office365Outlook.SendEmailV2(\r\n            varRequesterLeaderInfo.'e-mail',\r\n            \"[해석의뢰] 팀장 승인 요청 - \" & varNewRequestNo,\r\n            Concatenate(\r\n                \"<div style='font-family:Segoe UI;'>\",\r\n                \"<h3>해석 의뢰 승인 요청</h3>\",\r\n                \"<p>아래 해석 의뢰에 대한 팀장 승인이 필요합니다.</p>\",\r\n                \"<p><b>의뢰자:</b> \", varMyName, \"</p>\",\r\n                \"<p><b>의뢰번호:</b> \", varNewRequestNo, \"</p>\",\r\n                \"<p><b>해석명:</b> \", varSnapshotTitle, \"</p>\",\r\n                \"<p><b>품명:</b> \", varSnapshotProduct, \"</p>\",\r\n                \"<p><b>품번:</b> \", varSnapshotPart, \"</p>\",\r\n                \r\n                \"</div>\"\r\n            ),\r\n            { IsHtml: true, Importance: \"High\" }\r\n        )\r\n    )\r\n);\r\n\r\n// =============================\r\n// 수정 후 후처리\r\n// =============================\r\nIf(\r\n    varSavedRequestMode = \"Edit\",\r\n\r\n    Patch(\r\n        Analysis_Request_DB,\r\n        Self.LastSubmit,\r\n        {\r\n            LastRevisionNo:          varNewRevisionNo,\r\n            LastRequesterModifiedAt: Now(),\r\n            HasUnreadRevision:       true\r\n        }\r\n    );\r\n\r\n    Patch(\r\n        Analysis_Request_Log_DB,\r\n        Defaults(Analysis_Request_Log_DB),\r\n        {\r\n            Title:              \"Modify\",\r\n            RequestIDKey:       varSelectedRequest.RequestIDKey,\r\n            RequestNo:          varSelectedRequest.RequestNo,\r\n            LogType:            { Value: \"Modify\" },\r\n            LogMessage:         varMyName & \"님이 해석 의뢰 내용을 수정했습니다.\",\r\n            ActionByName:       varMyName,\r\n            ActionByEmail:      varMyEmail,\r\n            ActionRole:         \"Requester\",\r\n            ActionAt:           Now(),\r\n            RelatedRevisionNo:  varNewRevisionNo\r\n        }\r\n    );\r\n\r\n    If(\r\n        !IsBlank(varSelectedRequest.AssigneeEmail),\r\n        Office365Outlook.SendEmailV2(\r\n            varSelectedRequest.AssigneeEmail,\r\n            \"[해석의뢰] 수정본 도착 - \" & varSelectedRequest.RequestNo,\r\n            Concatenate(\r\n                \"<div style='font-family:Segoe UI;'>\",\r\n                \"<h3>해석 의뢰 수정 알림</h3>\",\r\n                \"<p>의뢰자가 해석 의뢰 내용을 수정했습니다.</p>\",\r\n                \"<p><b>의뢰번호:</b> \", varSelectedRequest.RequestNo, \"</p>\",\r\n                \"<p><b>해석명:</b> \", varSnapshotTitle, \"</p>\",\r\n                \"<p><b>의뢰자:</b> \", varMyName, \"</p>\",\r\n                \"<p>앱에서 최신 내용을 확인해 주세요.</p>\",\r\n               \r\n                \"</div>\"\r\n            ),\r\n            { IsHtml: true, Importance: \"High\" }\r\n        )\r\n    )\r\n);\r\n\r\n// =============================\r\n// 공통: Revision 첨부 폼 제출\r\n// (Refresh/팝업닫기/토스트는 frmRevisionAttach.OnSuccess에서 처리)\r\n// =============================\r\nSubmitForm(frmRevisionAttach)                                                                                                                                                                                                                                 "
                         Width: =821
                         X: =65
                         Y: =2
@@ -3973,7 +4098,8 @@ Screens:
                         Height: =35
                         Size: =18
                         Text: =varSelectedRequest.제목
-                        Width: =900
+                        Visible: =!varTitleEditMode
+                        Width: =850
                         X: =12
                         Y: =6
                   - Exit:
@@ -4015,12 +4141,162 @@ Screens:
                         BorderStyle: =BorderStyle.Solid
                         BorderThickness: =1
                         Height: =30
-                        OnSelect: =Navigate(PrintScreen)
+                        OnSelect: |-
+                          =// 결재 정보 미리 조회 (Log DB에서 팀장 승인 기록)
+                          Set(
+                              varApproveLog,
+                              LookUp(
+                                  Analysis_Request_Log_DB,
+                                  RequestIDKey = varSelectedRequest.RequestIDKey &&
+                                  LogType.Value = "TeamLeaderApprove"
+                              )
+                          );
+
+                          // 흐름 호출 → PDF 생성 요청
+                          Set(
+                              varPdfResult,
+                              '해석보고서_PDF생성'.Run(
+                                  varSelectedRequest.RequestNo,
+                                  varSelectedRequest.RequesterName,
+                                  varSelectedRequest.RequesterTeam,
+                                  Text(varSelectedRequest.SubmittedAt, "yyyy년 mm월 dd일"),
+                                  If(
+                                      IsBlank(varSelectedRequest.ExpectedFinishDate),
+                                      "-",
+                                      Text(varSelectedRequest.ExpectedFinishDate, "yyyy년 mm월 dd일")
+                                  ),
+                                  varSelectedRequest.ProductName,
+                                  varSelectedRequest.PartNo,
+                                  varSelectedRequest.AnalysisReason,
+                                  varSelectedRequest.AnalysisCondition,
+                                  Coalesce(varApproveLog.ActionByName, "-"),
+                                  If(
+                                      IsBlank(varApproveLog.ActionAt),
+                                      "-",
+                                      Text(varApproveLog.ActionAt, "yyyy년 mm월 dd일")
+                                  )
+                              )
+                          );
+
+                          // 생성된 PDF 링크로 이동 (다운로드/열람)
+                          Launch(varPdfResult.pdflink)
                         Text: ="해석 보고서 출력"
                         Visible: =varSelectedRequest.Status.Value = "Completed"
                         Width: =134
                         X: =816
                         Y: =35
+                  - txtTitleEdit:
+                      Control: ModernTextInput@1.1.1
+                      Properties:
+                        Default: =varTitleEditInput
+                        Font: =Font.Verdana
+                        OnChange: =Set(varTitleEditInput, txtTitleEdit.Text)
+                        Size: =18
+                        Visible: =varTitleEditMode
+                        Width: =700
+                        X: =8
+                        Y: =8
+                  - iconEditTitle:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =RGBA(100, 116, 139, 1)
+                        DisabledBorderColor: =RGBA(243, 242, 241, 1)
+                        DisabledColor: =RGBA(220, 220, 220, 1)
+                        DisabledFill: =RGBA(0, 0, 0, 0)
+                        Height: =25
+                        HoverBorderColor: =RGBA(0, 0, 0, 0)
+                        HoverColor: =RGBA(27, 38, 59, 1)
+                        HoverFill: =RGBA(0, 0, 0, 0)
+                        Icon: =Icon.Edit
+                        OnSelect: |-
+                          =Set(varTitleEditInput, varSelectedRequest.제목);
+                                Set(varTitleEditMode, true)
+                        PaddingBottom: =3
+                        PaddingLeft: =3
+                        PaddingRight: =3
+                        PaddingTop: =3
+                        PressedBorderColor: =RGBA(0, 0, 0, 0)
+                        PressedColor: =ColorFade(RGBA(98, 100, 167, 1), -30%)
+                        PressedFill: =RGBA(0, 0, 0, 0)
+                        Visible: =varIsVATeamMember && !varTitleEditMode
+                        Width: =25
+                  - btnTitleSave:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        Appearance: =ButtonAppearance.Secondary
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderStyle: =BorderStyle.Solid
+                        BorderThickness: =1
+                        Height: =28
+                        OnSelect: |-
+                          =If(
+                                    IsBlank(Trim(varTitleEditInput)),
+                                    Notify("해석명을 입력해 주세요.", NotificationType.Warning),
+
+                                    Patch(
+                                        Analysis_Request_DB,
+                                        varSelectedRequest,
+                                        { Title: Trim(varTitleEditInput) }
+                                    );
+
+                                    Patch(
+                                        Analysis_Request_Log_DB,
+                                        Defaults(Analysis_Request_Log_DB),
+                                        {
+                                            Title: "TitleChanged",
+                                            RequestIDKey: varSelectedRequest.RequestIDKey,
+                                            RequestNo: varSelectedRequest.RequestNo,
+                                            LogType: { Value: "TitleChanged" },
+                                            LogMessage: varMyName & "님이 해석명을 변경했습니다. (" & varSelectedRequest.제목 & " → " & Trim(varTitleEditInput) & ")",
+                                            ActionByName: varMyName,
+                                            ActionByEmail: varMyEmail,
+                                            ActionRole: "VAApprover",
+                                            ActionAt: Now(),
+                                            RelatedRevisionNo: varSelectedRequest.LastRevisionNo
+                                        }
+                                    );
+
+                                    Refresh(Analysis_Request_DB);
+                                    Refresh(Analysis_Request_Log_DB);
+
+                                    Set(varSelectedRequest, LookUp(Analysis_Request_DB, ID = varSelectedRequest.ID));
+
+                                    Set(varTitleEditMode, false);
+                                    Set(varToastMessage, "해석명이 수정되었습니다.");
+                                    Set(varShowToast, true)
+                                )
+                        Text: ="저장"
+                        Visible: =varTitleEditMode
+                        Width: =70
+                        X: =230
+                        Y: =42
+                  - btnTitleCancel:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        Appearance: =ButtonAppearance.Secondary
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderStyle: =BorderStyle.Solid
+                        BorderThickness: =1
+                        Height: =28
+                        OnSelect: =Set(varTitleEditMode, false)
+                        Text: ="취소"
+                        Visible: =varTitleEditMode
+                        Width: =70
+                        X: =304
+                        Y: =42
+                  - lblRequestNoDetail:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Color: =RGBA(100, 116, 139, 1)
+                        Font: =Font.Verdana
+                        FontWeight: =FontWeight.Semibold
+                        Height: =28
+                        Size: =12
+                        Text: =Coalesce(varSelectedRequest.RequestNo, "-")
+                        Width: =122
+                        X: =131
+                        Y: =39
             - Container5:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
