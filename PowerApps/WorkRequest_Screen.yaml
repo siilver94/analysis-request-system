@@ -2362,6 +2362,7 @@ Screens:
                                 )
                               Size: =14
                               Text: ="담당자 변경"
+                              Visible: =varSelectedRequest.Status.Value = "InProgress" && varIsAssigneeManager
                               Width: =110
                               X: =164
                               Y: =54
