@@ -30,16 +30,6 @@
 | Analysis_Request_Log_DB | 처리 로그 |
 | Analysis_Report_DB | 보고서 전용 (의뢰 첨부와 분리) |
 | UserInfo_DB | 사용자 (이름_한글, e-mail, 부문, 팀, 직급2) |
-| Project_DB | **(신규, 읽기전용 참조)** 업무_계정·프로젝트명 조회용. "중앙기술연구소 DB" 사이트의 공용 리스트, 이 앱에선 조회만 하고 쓰지 않음. 실제 컬럼: `업무_계정`, `프로젝트명` 등 |
-
-### Analysis_Request_DB 신규 컬럼 (프로젝트 연동, 신규)
-| 컬럼 | 타입 | 비고 |
-|--|--|--|
-| WorkCategory | 단일 텍스트 | 업무_계정 (제품개발/기술개발/설계변경/원가절감 중 선택, `btnRequestSave`에서 필수 검증) |
-| ProjectName | 단일 텍스트 | 프로젝트명 (Project_DB에서 업무_계정에 종속되어 선택) |
-
-### Analysis_Request_Revision_DB 신규 컬럼 (신규)
-- `WorkCategorySnapshot`, `ProjectNameSnapshot` — 그 시점의 업무_계정/프로젝트명 스냅샷. 둘 다 Required 해제.
 
 ### Analysis_Request_Log_DB 주요 컬럼
 ActionByName, ActionByEmail, ActionRole, ActionAt, LogType, RequestIDKey, RequestNo, LogMessage, RelatedRevisionNo
@@ -50,7 +40,7 @@ ActionByName, ActionByEmail, ActionRole, ActionAt, LogType, RequestIDKey, Reques
 ### Analysis_Request_Revision_DB 주요 컬럼
 RequestIDKey, RequestNo, RevisionNo, RevisedByName, RevisedByEmail, RevisedAt,
 AnalysisTitleSnapshot, ProductNameSnapshot, PartNoSnapshot, AnalysisReasonSnapshot,
-AnalysisConditionSnapshot, WorkCategorySnapshot, ProjectNameSnapshot, DepartmentNameSnapshot, RequesterNameSnapshot, RevisionComment, 첨부 파일(Attachments)
+AnalysisConditionSnapshot, DepartmentNameSnapshot, RequesterNameSnapshot, RevisionComment, 첨부 파일(Attachments)
 
 > **중요**: 이 List의 커스텀 컬럼은 전부 SharePoint에서 Required 해제됨. 첨부 폼이 첨부만 제출하고 나머지는 OnSuccess에서 Patch하기 때문. Title(기본 필드)은 건드리지 않음.
 
@@ -82,7 +72,6 @@ PendingTeamLeader → PendingVAApproval → InProgress → Completed (또는 Rej
 - 선택/모드: varSelectedRequest, varRequestMode(View/New/Edit), varSavedRequestMode, varShowRequestPopup, varSelectedRevision
 - 신규 등록: varNewRequestNo, varNewRequestIDKey, varRequesterLeaderInfo
 - Revision 첨부 분리: varLatestRevision, varNewRevisionNo, varSnapshotTitle, varSnapshotProduct, varSnapshotPart, varSnapshotReason, varSnapshotCondition, varRevisionComment
-- **프로젝트 연동 (신규)**: varSnapshotWorkCategory, varSnapshotProjectName (`btnRequestSave`에서 드롭다운 선택값 선캡처) / `colWorkCategoryOptions`(고정 4개 하드코딩 컬렉션) / `colProjectList`(Project_DB에서 필터링된 원본 행 캐싱, WorkRequest_Screen.OnVisible에서 생성)
 - 담당자 변경: **varOldAssigneeEmail, varOldAssigneeName, varNewAssigneeEmail, varNewAssigneeName** (Refresh 전 선캡처용)
 - 제목 인라인 수정: **varTitleEditMode, varTitleEditInput**
 - 보고서: varReportRecord, varReportAttachCount, **varReportEditMode**(완료 보고서 편집 토글)
@@ -103,11 +92,10 @@ PendingTeamLeader → PendingVAApproval → InProgress → Completed (또는 Rej
         { IsHtml: true, Importance: "High" }   // 또는 "Normal"
     )
 
-발송 위치: 등록(팀장 승인요청) / 팀장 승인·반려 / VA 승인(담당자+의뢰자)·반려 / 진행 저장(의뢰자) / 작업 완료(**요청자 + 요청자 소속 팀 팀장 + 가상검증팀 전원**, 신규로 팀장 추가됨) / 담당자 변경(신규 담당자 + 의뢰자).
+발송 위치: 등록(팀장 승인요청) / 팀장 승인·반려 / VA 승인(담당자+의뢰자)·반려 / 진행 저장(의뢰자) / 작업 완료(의뢰자 + 가상검증팀 전원) / 담당자 변경(신규 담당자 + 의뢰자).
 
 - **앱 바로가기 링크는 본문에 넣지 않음** (보안 정책, 게시 시 URL이 매번 바뀜, App.LaunchUrl 미지원).
 - 가상검증팀 전원 발송은 `ForAll(Filter(UserInfo_DB, 팀 = "가상검증팀"), SendEmailV2(...))` 패턴. 팀 5명 소규모라 속도 무관, 담당자 본인 포함 발송 OK.
-- **요청자 팀 팀장 발송(신규)**: 새로 조회하지 않고 `varSelectedRequest.RequesterLeaderEmail`(등록 시점에 이미 저장된 값) 그대로 사용. 등록 당시 팀에 팀장이 없었거나 이후 팀장이 바뀐 경우 이 값이 비어있어 메일이 스킵될 수 있음 (에러는 안 남, `IsBlank` 체크로 방어).
 
 ---
 
@@ -165,7 +153,7 @@ Canvas App의 `Print()`는 화면 뷰포트 크기(기본 768)에 종속되어 �
 
 ---
 
-## 8. 세션별 신규 구현 기능
+## 8. 이번 세션 신규 구현 기능
 
 ### 8-1. 진행 중 담당자 변경 (박윤주 팀장 전용)
 - `varIsAssigneeManager` = varMyEmail = yoonju.park@tym.world
@@ -198,20 +186,6 @@ Canvas App의 `Print()`는 화면 뷰포트 크기(기본 768)에 종속되어 �
 - frmReportEdit.OnSuccess: Refresh + varReportRecord 재조회 + FinalReportAttached 동기화 + varReportEditMode=false + 토스트
 - 버튼: btnReportModify(수정, Set true), btnReportSaveEdit(SubmitForm(frmReportEdit)), btnReportCancelEdit(ResetForm+Refresh+false)
 - **배경**: FormViewer는 DefaultMode 없음(조회 전용). DataCardValue3_1.Attachments 직접 Patch는 "Table (Attachment) 형식 불일치" 에러 → Form 컨트롤 + SubmitForm 경유만 안전. 알림 메일 없음.
-
-### 8-7. 업무_계정 / 프로젝트명 프로젝트 연동 (신규, Project_DB 연계)
-- **목적**: 해석 의뢰 건이 어떤 프로젝트와 연관되어 있는지 요청자가 등록 시 지정하고, 가상검증팀이 목록/상세보기에서 바로 확인.
-- **데이터 소스**: Project_DB(외부 참조, 읽기전용). 업무_계정은 "제품개발/기술개발/설계변경/원가절감" **4개로 고정 제한** (하드코딩), 프로젝트명은 이 4개에 속한 것만 Project_DB에서 종속적으로 필터링.
-- **컨트롤**: `confrmRequest` 안 `drpWorkCategory`/`drpProjectName`(ModernCombobox, frmAnalysisRequest와 형제, Form 밖 자유 컨트롤). `drpProjectName.Items`는 `drpWorkCategory.Selected` 값에 따라 `Filter(colProjectList, ...)`로 종속 필터링(진짜 캐스케이딩 드롭다운). `drpWorkCategory.OnChange`에서 `Reset(drpProjectName)` 호출해 카테고리 변경 시 이전 선택 초기화.
-- **캐싱**: WorkRequest_Screen.OnVisible에서 `colWorkCategoryOptions`(고정 4개), `colProjectList`(Project_DB를 4개 업무_계정으로 Filter한 원본 행, `RenameColumns`로 컬럼명을 `WorkCategoryValue`/`ProjectNameValue`로 통일) 생성.
-- **저장 흐름**: `btnRequestSave.OnSelect`에서 필수 검증(`IsBlank(drpWorkCategory.Selected) || IsBlank(drpProjectName.Selected)`) + 스냅샷 변수 캡처(`varSnapshotWorkCategory`/`varSnapshotProjectName`) → `frmAnalysisRequest.OnSuccess`(New/Edit 블록 Patch에 WorkCategory/ProjectName 추가) → `frmRevisionAttach.OnSuccess`(Revision DB에 WorkCategorySnapshot/ProjectNameSnapshot 추가).
-- **표시**: 칸반 카드 3곳("요청일" 라벨에 " | 업무_계정 · 프로젝트명" 이어붙임) + 상세보기 Container3_1(품번 값 옆 여백에 표시).
-- **Edit 모드 재진입 시 드롭다운 초기화 필수**: 드롭다운이 Form 밖 컨트롤이라 `DefaultSelectedItems`는 변수 변경만으론 재적용 안 됨 → "해석 의뢰"(신규) 버튼과 "수정" 버튼 2곳 OnSelect에 `Reset(drpWorkCategory); Reset(drpProjectName);` 명시 추가 (10절 패턴 참고).
-
-### 8-8. 작업 완료 알림 대상자 확대 (신규)
-- `btnCompleteAnalysis.OnSelect`에 "요청자 팀 팀장 메일" 블록 추가 (의뢰자 메일과 가상검증팀 전원 메일 사이).
-- 새로 조회하지 않고 등록 시점에 이미 저장된 `varSelectedRequest.RequesterLeaderEmail` 재사용.
-- 완료 알림 최종 대상: 요청자 + 요청자 팀 팀장 + 가상검증팀 전원 (5절 참고).
 
 ---
 
@@ -260,10 +234,6 @@ galStart>Rectangle1, galInProgress>Rectangle1_3, galCompleted>Rectangle1_5 의 O
 - **타이밍**: SubmitForm → OnSuccess 순서. Refresh 후 LookUp 해야 최신값. 후처리는 OnSuccess에 몰아넣어 타이밍 꼬임 방지.
 - **Power Automate 흐름 File 파라미터**: Path 아니라 Id/Identifier. 공유 scope는 Organization. 흐름은 솔루션 포함 + 앱과 동일 환경.
 - **galRevisionHistory에서 Rev별 첨부 조회**: 보류 상태. 추후 별도 화면 예정.
-- **갤러리 아이템 OnSelect엔 조건 없는 반복 Patch 금지 (신규, 중요)**: 갤러리 클릭(팝업 열기)마다 무조건 실행되는 Patch(예: FinalReportAttached 리셋)가 있으면, 그 Patch가 서버 버전(ETag)을 올려버려서 그 뒤에 캡처해둔 `varSelectedRequest`가 stale해짐 → 승인/반려 등 후속 Patch가 "서버의 변경 내용과 충돌합니다" 에러로 실패(간헐적 재현, 타이밍에 좌우됨). 실제로 galStart/galInProgress/galCompleted 3곳 모두 이 로직이 완전히 중복 실행되고 있었음(복붙 실수) → 조건(`ThisItem.FinalReportAttached = true`일 때만) 추가 + 중복 제거 + Patch 이후 `varSelectedRequest`를 새로 LookUp해서 확정하는 방식으로 수정.
-- **`Distinct()` 결과 컬럼명은 `Value`(공식 문서 기준), `Result` 아님 (신규, 트러블슈팅)**: 커뮤니티 자료 다수가 `Result`라고 잘못 설명함. `RenameColumns(Distinct(...), Value, 원하는이름)` 형태로 바로 이름을 바꿔서 쓰는 걸 권장(이후 코드에서 자동생성 이름에 의존할 일이 없어짐).
-- **Form 밖 자유 컨트롤(ComboBox 등)의 `Default`/`DefaultSelectedItems`는 변수만 바꿔선 재적용 안 됨 (신규, 중요)**: 이 속성들은 컨트롤이 처음 만들어질 때 또는 `Reset()`을 명시적으로 호출할 때만 다시 계산됨. `varSelectedRequest`가 바뀐다고 자동으로 드롭다운이 갱신되지 않으므로, New/Edit 모드로 들어가는 모든 진입점(등록 버튼, 수정 버튼)에서 관련 컨트롤에 `Reset()`을 명시적으로 호출해야 함 (8-7절 사례).
-- **ComboBox `DefaultSelectedItems`는 `Items`와 완전히 같은 스키마여야 함**: 리터럴로 `[{필드: 값}]` 직접 만들면 타입 불일치 에러 나기 쉬움 → `Filter(Items가_참조하는_컬렉션, 필드 = 값)`처럼 Items 컬렉션 자체에서 걸러내는 방식이 안전.
 
 ---
 
@@ -276,20 +246,17 @@ galStart>Rectangle1, galInProgress>Rectangle1_3, galCompleted>Rectangle1_5 의 O
 - 메일 발신자 인사말: "안녕하십니까, 김은성 주임 입니다"로 시작
 - 진행 방식: 문제 진단 → 현재 상태 확인 → 단계별 수정 → 스크린샷 확인, 한 번에 하나씩
 - 변경사항은 GitHub로 버전 관리, *.msapp는 .gitignore
-- **YAML 파일은 Claude가 수시로 직접 수정하지 않음**: 진실의 원본은 실제 Power Apps Studio. Claude는 코드 스니펫만 제공하고, 주인이 직접 Studio에 붙여넣은 뒤 필요시 로컬 파일에도 반영함.
 
 ---
 
-## 12. 최근 변경 이력
+## 12. 최근 변경 이력 (이번 세션)
 
-### 세션 A (~2026-07-30 이전)
-
-**오류 수정**
+### 오류 수정
 - **보고서 출력 하단 짤림**: Print() → Power Automate + OneDrive HTML→PDF 변환 방식으로 근본 해결
 - **RequestNo 시작값**: +32 → +38 (CAE26039부터)
 - **메일 앱 바로가기 링크 제거**: 게시 시 URL 변동 + 보안 정책, App.LaunchUrl 미지원
 
-**기능 개발**
+### 기능 개발
 - 진행 중 담당자 변경 (박윤주 팀장 전용, 변수 선캡처 패턴)
 - 제목 인라인 수정 (가상검증팀 전원, 연필 토글)
 - 가상검증팀 전체 진행 내역 조회 (조회/처리 권한 분리)
@@ -297,24 +264,10 @@ galStart>Rectangle1, galInProgress>Rectangle1_3, galCompleted>Rectangle1_5 의 O
 - 완료 시 가상검증팀 전원 알림 (ForAll)
 - 완료 건 보고서 수정 (frmReportEdit, B안)
 
-**구조 변경**
+### 구조 변경
 - **PrintScreen 삭제** (Power Automate PDF 방식으로 전환)
 - Analysis_Request_Log_DB LogType에 AssigneeChanged, TitleChanged 추가
 
-### 세션 B (2026-08)
-
-**오류 수정**
-- **PendingVAApproval 승인/반려 시 "서버의 변경 내용과 충돌합니다" 에러 (간헐적)**: 갤러리 아이템 OnSelect(galStart/galInProgress/galCompleted 3곳)에 완전히 중복 실행되던 `FinalReportAttached` 리셋 Patch가 원인 — 팝업 여는 시점에 이미 서버 버전이 올라가서 그 뒤 캡처된 `varSelectedRequest`가 stale해짐. 조건 추가 + 중복 제거 + Patch 후 재조회로 수정 (10절 참고).
-
-**기능 개발**
-- **업무_계정 / 프로젝트명 프로젝트 연동**: Project_DB 연계, 업무_계정 4종 고정 + 종속(캐스케이딩) 프로젝트명 드롭다운, 칸반 카드·상세보기 표시 (8-7절)
-- **작업 완료 알림 대상자 확대**: 요청자 팀 팀장 추가 (기존 요청자+가상검증팀 전원에 추가, 8-8절)
-
-**구조 변경**
-- Analysis_Request_DB: `WorkCategory`, `ProjectName` 컬럼 추가
-- Analysis_Request_Revision_DB: `WorkCategorySnapshot`, `ProjectNameSnapshot` 컬럼 추가
-- WorkRequest_Screen: `drpWorkCategory`, `drpProjectName` 컨트롤 추가, OnVisible에 `colWorkCategoryOptions`/`colProjectList` 캐싱 추가
-
-**보류 / 다음 작업 후보**
+### 보류 / 다음 작업 후보
 - galRevisionHistory Rev 클릭 시 첨부 조회 화면 (별도 화면 구성 예정)
 - View_Screen 안정성 추가 검증
