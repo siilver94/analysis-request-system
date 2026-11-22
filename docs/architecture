@@ -1,0 +1,260 @@
+# 아키텍처
+
+해석 의뢰 시스템의 데이터 구조, 저장 흐름, 권한 구조를 설명합니다.
+컬럼 단위 정의는 [sharepoint/sharepoint_schema.md](../sharepoint/sharepoint_schema.md), PDF 흐름은 [PowerAutomate/README.md](../PowerAutomate/README.md)에 따로 있습니다.
+
+## 목차
+
+1. [설계 전제](#1-설계-전제)
+2. [데이터 모델](#2-데이터-모델)
+3. [화면 구성](#3-화면-구성)
+4. [앱 시작 시 처리](#4-앱-시작-시-처리)
+5. [권한 구조](#5-권한-구조)
+6. [의뢰 저장 흐름](#6-의뢰-저장-흐름)
+7. [Revision과 첨부파일](#7-revision과-첨부파일)
+8. [알림 메일](#8-알림-메일)
+9. [의뢰번호](#9-의뢰번호)
+
+---
+
+## 1. 설계 전제
+
+| 전제 | 그래서 선택한 것 |
+|--|--|
+| 추가 라이선스가 없다 | Dataverse 대신 SharePoint List, 프리미엄 커넥터 미사용 |
+| 사용자는 Teams 안에서 일한다 | Teams 탭 앱으로 배포 |
+| 사용자 수와 의뢰 건수가 많지 않다 | 단일 화면, 건수 기반 채번, 일부 비위임 필터 허용 |
+| 혼자 개발하고 운영한다 | 화면 하나에 모든 기능을 두고 팝업으로 전환 |
+
+---
+
+## 2. 데이터 모델
+
+모든 List는 `RequestIDKey`(GUID 문자열)로 연결합니다. SharePoint의 조회(Lookup) 컬럼은 쓰지 않았습니다. 조회 컬럼은 위임과 Patch 문법이 까다롭고, 텍스트 키만으로 충분했기 때문입니다.
+
+```mermaid
+erDiagram
+    Analysis_Request_DB ||--o{ Analysis_Request_Revision_DB : "RequestIDKey"
+    Analysis_Request_DB ||--o{ Analysis_Request_Log_DB : "RequestIDKey"
+    Analysis_Request_DB ||--o| Analysis_Report_DB : "RequestIDKey"
+    UserInfo_DB ||..o{ Analysis_Request_DB : "이메일로 대조"
+    Project_DB ||..o{ Analysis_Request_DB : "선택값을 텍스트로 복사"
+
+    Analysis_Request_DB {
+        string RequestIDKey
+        string RequestNo
+        choice Status
+        string RequesterEmail
+        string RequesterLeaderEmail
+        string AssigneeEmail
+        number LastRevisionNo
+        number ProgressPct
+        bool FinalReportAttached
+    }
+    Analysis_Request_Revision_DB {
+        string RequestIDKey
+        number RevisionNo
+        string RevisionComment
+        string SnapshotColumns
+        attachment Attachments
+    }
+    Analysis_Request_Log_DB {
+        string RequestIDKey
+        choice LogType
+        string ActionByName
+        datetime ActionAt
+    }
+    Analysis_Report_DB {
+        string RequestIDKey
+        string UploadedByName
+        attachment Attachments
+    }
+    UserInfo_DB {
+        string Email
+        string Team
+        string JobGrade
+    }
+    Project_DB {
+        string WorkCategory
+        string ProjectName
+    }
+```
+
+| List | 한 행의 의미 | 쓰기 시점 |
+|--|--|--|
+| `Analysis_Request_DB` | 의뢰 한 건의 **현재 상태** | 등록, 수정, 상태 변경마다 갱신 |
+| `Analysis_Request_Revision_DB` | 의뢰의 **특정 시점 버전** (내용 스냅샷 + 그때 올린 첨부) | 등록 시 Rev.1, 수정할 때마다 한 행 추가 |
+| `Analysis_Request_Log_DB` | **처리 이벤트** 한 건 | 등록, 승인, 반려, 배정, 진행 갱신, 완료 등 |
+| `Analysis_Report_DB` | 의뢰의 **완료 보고서** 첨부 보관 | 담당자가 보고서를 올릴 때 |
+| `UserInfo_DB` | 사용자 한 명 (이름, 이메일, 부문, 팀, 직급) | 앱에서는 읽기만 함 |
+| `Project_DB` | 조직 공용 프로젝트 한 건 | 앱에서는 읽기만 함 |
+
+List를 나눈 이유는 SharePoint List에 첨부파일 칸이 하나뿐이기 때문입니다. 의뢰 첨부, 버전별 첨부, 완료 보고서를 구분하려면 각각 다른 List가 필요합니다.
+
+---
+
+## 3. 화면 구성
+
+화면은 `WorkRequest_Screen` 하나이며, 변수로 팝업을 켜고 끕니다.
+
+| 영역 | 주요 컨트롤 | 표시 조건 |
+|--|--|--|
+| 조회 필터 | `ddPeriodFilter`, `txtSearch`, `tglIncludeCompleted`, `tglIncludeRejected` | 항상 |
+| 칸반 | `galStart`, `galInProgress`, `galCompleted` | 항상 |
+| 등록 · 수정 팝업 | `frmAnalysisRequest`, `frmRevisionAttach`, `frmPrevRevAttachView`, `drpWorkCategory`, `drpProjectName` | `varShowRequestPopup` 이고 `varRequestMode`가 New 또는 Edit |
+| 조회 팝업 | `conRequestView`(좌), `conDetailRight`(우) | `varShowRequestPopup` 이고 `varRequestMode`가 View |
+| 삭제 확인 | `conDeleteConfirmPopup` | `varShowDeleteConfirmPopup` |
+| 토스트 | `conNotice`, `toastTimer` | `varShowToast` |
+
+조회 팝업의 왼쪽 아래에는 역할별 처리 영역이 같은 자리에 겹쳐 있고, 상태와 역할 조건에 맞는 것 하나만 나타납니다.
+
+| 처리 영역 | 대상 | 나타나는 상태 |
+|--|--|--|
+| `conRequesterAction` | 요청자 본인 | 팀장 승인대기 ~ 진행중 |
+| `conLeaderAction` | 요청자의 팀장 | 팀장 승인대기 |
+| `conVAApproveAction` | 해석팀 승인자 | 가상검증 승인대기 (해석팀 팀장은 진행중에도 표시) |
+| `conWorkerAction` | 담당자 | 진행중 |
+| `conReportSection` | 전체 (수정은 해석팀) | 완료 |
+| `conRejectReason` | 전체 | 반려 |
+
+---
+
+## 4. 앱 시작 시 처리
+
+`WorkRequest_Screen.OnVisible`에서 다음을 순서대로 수행합니다.
+
+1. 로그인 사용자의 이메일로 `UserInfo_DB`에서 이름, 부문, 팀, 직급을 조회
+2. 역할 변수 계산 (`varIsTeamLeader`, `varIsVAApprover`, `varIsVATeamMember`, `varIsAssigneeManager`, `varIsAdmin`)
+3. 화면 상태와 필터 기본값 초기화 (기본 조회 기간은 올해)
+4. List 새로고침
+5. 선택용 컬렉션 캐싱: 조회 연도 목록(`colPeriodOptions`), 업무 계정(`colWorkCategoryOptions`), 프로젝트 목록(`colProjectList`)
+
+프로젝트 목록은 등록 팝업을 열 때마다 조회하지 않도록 시작 시 한 번만 컬렉션에 담아 둡니다.
+
+---
+
+## 5. 권한 구조
+
+권한은 SharePoint 권한이 아니라 **앱 안의 역할 변수**로 구분합니다.
+
+```mermaid
+flowchart TD
+    E["로그인 이메일"] --> U{"UserInfo_DB 조회"}
+    U -->|"직급이 팀장 · 소장 · 이사"| TL["varIsTeamLeader"]
+    U -->|"팀이 가상검증팀"| VT["varIsVATeamMember"]
+    E -->|"고정 이메일 목록과 비교"| VA["varIsVAApprover"]
+    E -->|"고정 이메일과 비교"| AM["varIsAssigneeManager"]
+    E -->|"고정 이메일 목록과 비교"| AD["varIsAdmin"]
+
+    VT --> V1["전체 조회 · 제목 수정 · 보고서 교체"]
+    AD --> V2["전체 조회"]
+    VA --> P1["담당자 지정 · 승인 · 반려"]
+    AM --> P2["진행 중 담당자 변경"]
+    TL --> P3["팀원 의뢰 승인 · 반려"]
+```
+
+- **조회 범위**는 세 갤러리의 `Items`에서 결정합니다. 관리자와 해석팀은 전체, 팀장은 본인 건과 팀원 건, 그 외는 본인이 요청했거나 담당하는 건만 봅니다.
+- **처리 권한**은 버튼과 처리 영역의 `Visible`에서 결정합니다.
+- 조회와 처리를 따로 둔 덕분에 "해석팀 전원이 모든 건을 보되 승인은 두 명만"이라는 요구를 갤러리 조건 한 줄로 반영할 수 있었습니다.
+
+> 이 방식은 화면에서 보이지 않게 할 뿐, List 자체의 접근을 막지 않습니다. 사용자는 List에 대한 편집 권한을 가지고 있어야 앱이 동작하므로, SharePoint 사이트에서 List를 직접 열면 다른 사람의 의뢰도 볼 수 있습니다. 민감한 데이터를 다룬다면 List 수준의 권한 설계가 따로 필요합니다.
+
+---
+
+## 6. 의뢰 저장 흐름
+
+등록과 수정은 폼 두 개를 차례로 제출합니다. 본문은 `frmAnalysisRequest`, 첨부는 `frmRevisionAttach`가 맡습니다.
+
+```mermaid
+sequenceDiagram
+    actor 사용자
+    participant B as btnRequestSave
+    participant F1 as frmAnalysisRequest
+    participant F2 as frmRevisionAttach
+    participant SP as SharePoint
+    participant M as Outlook
+
+    사용자->>B: 등록 / 저장
+    B->>B: 필수값 검증, 수정이면 수정 사유 확인
+    B->>B: 입력값을 스냅샷 변수에 저장<br/>새 Revision 번호 계산
+    B->>F1: SubmitForm
+    F1->>SP: 의뢰 본문 저장
+    F1-->>F1: OnSuccess
+    F1->>SP: 의뢰번호 · 요청자 · 상태 등 시스템 컬럼 Patch
+    F1->>SP: 로그 기록 (Submit 또는 Modify)
+    F1->>M: 알림 메일 (신규: 팀장 / 수정: 담당자)
+    F1->>F2: SubmitForm
+    F2->>SP: Revision 행 생성 + 첨부 저장
+    F2-->>F2: OnSuccess
+    F2->>SP: Revision 행에 스냅샷 컬럼 Patch
+    F2->>사용자: 팝업 닫기 + 완료 토스트
+```
+
+이 순서에는 이유가 있습니다.
+
+- **첨부파일은 Form으로만 저장할 수 있습니다.** `Patch`로는 첨부를 올릴 수 없어서, 첨부 전용 폼을 따로 두었습니다.
+- **스냅샷 변수를 먼저 만듭니다.** 첫 번째 폼이 제출되면 입력 컨트롤이 초기화되므로, 두 번째 폼의 `OnSuccess`에서 쓸 값을 제출 전에 변수로 옮겨 둡니다.
+- **후처리는 모두 `OnSuccess`에 둡니다.** `SubmitForm` 바로 다음 줄에 쓴 수식은 저장이 끝나기를 기다리지 않습니다.
+- **Revision_DB의 사용자 컬럼은 모두 필수 해제**입니다. 첨부 폼이 첨부만 담아 행을 먼저 만들고 나머지 컬럼은 그 뒤에 채우기 때문입니다.
+
+---
+
+## 7. Revision과 첨부파일
+
+Revision 한 행은 "그 시점에 저장된 버전"입니다. 내용 스냅샷과 그때 올린 파일을 함께 가집니다.
+
+```
+최초 등록 → Rev.1  (본문 + 첨부 A)
+1차 수정  → Rev.2  (바뀐 본문 + 새로 올린 첨부 B)
+2차 수정  → Rev.3  (바뀐 본문, 첨부 없음)
+현재 버전 = RevisionNo가 가장 큰 행 (Analysis_Request_DB.LastRevisionNo)
+```
+
+- 조회 화면의 첨부파일은 최신 Revision 행의 첨부를 보여 줍니다.
+- 수정 화면에서는 왼쪽에 이전 버전 첨부(읽기 전용), 오른쪽에 새 첨부 업로드 영역이 나옵니다.
+- 수정 시 이전 첨부는 자동으로 넘어오지 않습니다. 유지하려면 다시 올려야 합니다.
+
+마지막 항목은 SharePoint의 제약 때문입니다. 이미 저장된 첨부는 앱에서 주소(URL)로만 참조할 수 있어서, 다른 행이나 다른 List로 복사할 방법이 없습니다. 자세한 경위는 [lessons-learned.md](lessons-learned.md#2-sharepoint-첨부파일은-list-사이에서-복사할-수-없다)에 있습니다.
+
+완료 보고서는 `Analysis_Report_DB`에 따로 저장하고, 첨부 유무를 `Analysis_Request_DB.FinalReportAttached`에 반영합니다. 이 값이 참이어야 "작업 완료" 버튼이 활성화됩니다.
+
+---
+
+## 8. 알림 메일
+
+상태가 바뀌는 버튼의 수식 안에서 Office 365 Outlook 커넥터로 직접 보냅니다. 별도 흐름을 거치지 않습니다.
+
+| 시점 | 받는 사람 |
+|--|--|
+| 등록 | 요청자의 팀장 |
+| 팀장 승인 | 해석팀 승인자, 요청자 |
+| 팀장 반려 | 요청자 |
+| 해석팀 승인 (담당자 지정) | 담당자, 요청자 |
+| 해석팀 반려 | 요청자 |
+| 의뢰 수정 | 담당자 (지정된 경우) |
+| 진행 정보 저장 | 요청자 |
+| 담당자 변경 | 새 담당자, 요청자 |
+| 작업 완료 | 요청자, 요청자의 팀장, 해석팀 전원 |
+
+- 메일은 버튼을 누른 사용자의 계정으로 발송됩니다.
+- 본문에 앱 바로가기 링크는 넣지 않았습니다. Teams 앱의 주소가 게시할 때마다 달라져 링크가 유지되지 않았습니다.
+- 요청자의 팀장 이메일은 등록 시점에 조회해 의뢰 행에 저장해 두고, 이후 알림에서 다시 조회하지 않습니다.
+
+---
+
+## 9. 의뢰번호
+
+형식은 `CAE` + 연도 2자리 + 순번 3자리입니다. 예: `CAE26001`
+
+```powerfx
+"CAE" &
+Text(Year(Now()) - 2000, "00") &
+Text(
+    CountRows(Filter(Analysis_Request_DB, Year(SubmittedAt) = Year(Now()))) + N,
+    "000"
+)
+```
+
+- `N`은 시스템 도입 전에 수기로 부여하던 번호에 이어 붙이기 위한 오프셋입니다. 새로 시작한다면 `1`을 씁니다.
+- 연도가 바뀌면 그해 건수가 0이 되므로 순번이 다시 시작합니다. 오프셋은 도입 첫해에만 의미가 있으므로, 해가 바뀌면 `1`로 되돌려야 `001`부터 시작합니다.
+- 건수를 세어 번호를 만들기 때문에, 동시에 등록하거나 중간 건을 삭제하면 번호가 겹칠 수 있습니다. 소규모 사용을 전제로 받아들인 제약입니다.
